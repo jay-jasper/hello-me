@@ -1,0 +1,586 @@
+@import 'lxgw-wenkai-screen-webfont/lxgwwenkaiscreen.css';
+@import '@fontsource/fragment-mono/400.css';
+
+:root {
+  /* 水体 */
+  --water-shallow: oklch(0.22 0.05 235);
+  --water-mid: oklch(0.13 0.035 240);
+  --water-deep: oklch(0.09 0.025 245);
+  --water-abyss: oklch(0.07 0.02 250);
+  --bg: oklch(0.1 0.025 245);
+  --surface: oklch(0.15 0.03 240);
+  --edge: oklch(0.3 0.03 240);
+
+  /* 文字 */
+  --ink: oklch(0.94 0.012 220);
+  --muted: oklch(0.72 0.02 230);
+
+  /* 生物荧光 */
+  --lure: oklch(0.78 0.14 36);
+  --lure-dim: oklch(0.78 0.14 36 / 0.35);
+  --plankton: oklch(0.6 0.1 210);
+  --plankton-bright: oklch(0.8 0.08 205);
+
+  --font-body: 'LXGW WenKai Screen', 'Kaiti SC', 'STKaiti', serif;
+  --font-gauge: 'Fragment Mono', ui-monospace, monospace;
+
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* z 轴语义：水体特效 < 内容 < 仪表 <（native top-layer: dialog） */
+  --z-effects: 1;
+  --z-content: 2;
+  --z-hud: 3;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--water-abyss);
+  color-scheme: dark;
+}
+
+body {
+  font-family: var(--font-body);
+  font-size: 1.0625rem;
+  line-height: 1.95;
+  letter-spacing: 0.012em;
+  color: var(--ink);
+  /* 水体：整页即水柱，随滚动自然下潜 */
+  background: linear-gradient(
+    var(--water-shallow),
+    var(--water-mid) 22%,
+    var(--water-deep) 55%,
+    var(--water-abyss)
+  );
+  overflow-x: hidden;
+}
+
+::selection {
+  background: var(--lure-dim);
+  color: var(--ink);
+}
+
+/* ---------- 特效画布 ---------- */
+
+#abyss {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: var(--z-effects);
+  pointer-events: none;
+}
+
+/* 深度压暗：越深，视野边缘越被黑暗吞没（--dim 由滚动驱动） */
+#dim {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-effects);
+  pointer-events: none;
+  background: radial-gradient(
+    130% 100% at 50% 42%,
+    transparent 25%,
+    oklch(0.02 0.01 250 / 0.4) 60%,
+    oklch(0.02 0.01 250 / 0.85) 100%
+  );
+  opacity: var(--dim, 0);
+}
+
+/* ---------- 无障碍基件 ---------- */
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.skip-link {
+  position: fixed;
+  top: -100%;
+  left: 50%;
+  translate: -50% 0;
+  z-index: var(--z-hud);
+  padding: 0.5em 1.2em;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--edge);
+  border-radius: 999px;
+  text-decoration: none;
+  transition: top 0.2s var(--ease-out-quint);
+}
+.skip-link:focus-visible {
+  top: 1rem;
+}
+
+:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px var(--lure),
+    0 0 16px var(--lure-dim);
+  border-radius: 4px;
+}
+
+/* ---------- HUD 深度计 ---------- */
+
+.hud {
+  position: fixed;
+  top: clamp(1rem, 3vh, 2rem);
+  left: clamp(1rem, 3vw, 2.2rem);
+  z-index: var(--z-hud);
+  font-family: var(--font-gauge);
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+}
+
+.hud-depth {
+  font-size: clamp(1.1rem, 2.2vw, 1.5rem);
+  color: var(--lure);
+  letter-spacing: 0.04em;
+}
+.hud-depth::before {
+  content: '−';
+  opacity: 0.7;
+}
+
+.hud-year {
+  font-size: 0.8rem;
+  color: var(--muted);
+  letter-spacing: 0.1em;
+}
+
+.surfacing {
+  position: fixed;
+  top: clamp(1rem, 3vh, 2rem);
+  right: clamp(1rem, 3vw, 2.2rem);
+  z-index: var(--z-hud);
+  font-family: var(--font-gauge);
+  font-size: 0.8rem;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  background: none;
+  border: 1px solid var(--edge);
+  border-radius: 999px;
+  padding: 0.55em 1.2em;
+  cursor: pointer;
+  transition:
+    color 0.25s var(--ease-out-quint),
+    border-color 0.25s var(--ease-out-quint),
+    opacity 0.4s var(--ease-out-quint);
+}
+.surfacing:hover {
+  color: var(--lure);
+  border-color: var(--lure-dim);
+}
+
+/* ---------- 海面 ---------- */
+
+main {
+  position: relative;
+  z-index: var(--z-content);
+}
+
+.surface {
+  position: relative;
+  min-height: 100vh;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 0 1.5rem;
+}
+
+h1 {
+  font-size: clamp(3rem, 10vw, 5rem);
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  text-wrap: balance;
+  text-shadow: 0 0 26px oklch(0.9 0.02 220 / 0.45);
+}
+
+.tagline {
+  margin-top: 1.2rem;
+  font-size: clamp(1.05rem, 2.4vw, 1.3rem);
+  color: var(--ink);
+  letter-spacing: 0.06em;
+  text-shadow: 0 1px 18px oklch(0.15 0.03 240 / 0.6);
+}
+
+.dive-hint {
+  position: absolute;
+  bottom: clamp(2rem, 7vh, 4rem);
+  font-family: var(--font-gauge);
+  font-size: 0.8rem;
+  letter-spacing: 0.3em;
+  color: var(--muted);
+  animation: bob 3.2s var(--ease-out-quint) infinite;
+  transition: opacity 0.6s;
+}
+.dive-hint.gone {
+  opacity: 0;
+}
+.dive-hint::after {
+  content: '';
+  display: block;
+  width: 1px;
+  height: 2.4rem;
+  margin: 0.9rem auto 0;
+  background: linear-gradient(var(--muted), transparent);
+}
+
+@keyframes bob {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: 0 8px;
+  }
+}
+
+/* ---------- 此刻 ---------- */
+
+.now {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  max-width: 36rem;
+  margin-inline: auto;
+  padding: 4rem 1.5rem;
+}
+
+h2 {
+  font-size: clamp(1.6rem, 4vw, 2.2rem);
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  text-wrap: balance;
+  margin-bottom: 2.2rem;
+  text-shadow: 0 0 32px oklch(0.8 0.06 220 / 0.25);
+}
+
+.depth-tag {
+  font-family: var(--font-gauge);
+  font-size: 0.55em;
+  color: var(--lure);
+  letter-spacing: 0.1em;
+  vertical-align: 0.35em;
+  margin-left: 0.6em;
+}
+
+.now-list {
+  list-style: none;
+  display: grid;
+  gap: 0.9rem;
+}
+.now-list li {
+  color: var(--ink);
+}
+.now-list li::before {
+  content: '';
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--plankton-bright);
+  box-shadow: 0 0 10px var(--plankton);
+  margin-right: 0.8em;
+  vertical-align: 0.15em;
+}
+
+.socials {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem 2rem;
+  margin-top: 3rem;
+}
+.socials a {
+  color: var(--muted);
+  text-decoration: none;
+  font-family: var(--font-gauge);
+  font-size: 0.9rem;
+  letter-spacing: 0.1em;
+  padding: 0.3em 0;
+  display: inline-block;
+  border-bottom: 1px solid transparent;
+  transition:
+    color 0.25s var(--ease-out-quint),
+    translate 0.25s var(--ease-out-quint),
+    border-color 0.25s var(--ease-out-quint),
+    text-shadow 0.25s var(--ease-out-quint);
+}
+.socials a:hover {
+  color: var(--lure);
+  translate: 0 -2px;
+  border-color: var(--lure-dim);
+  text-shadow: 0 0 18px var(--lure-dim);
+}
+
+/* ---------- 记忆带 ---------- */
+
+.memories {
+  position: relative;
+  /* 高度由 JS 依据记忆数量设定 */
+}
+
+.memory {
+  position: absolute;
+  translate: 0 -50%;
+  max-width: min(38ch, 72vw);
+  background: none;
+  border: none;
+  font: inherit;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 1rem;
+  align-items: baseline;
+  opacity: 0.45;
+  transition:
+    opacity 0.9s var(--ease-out-quint),
+    translate 0.9s var(--ease-out-quint);
+  padding: 0.6rem 0.8rem;
+}
+.memory.side-l {
+  left: clamp(1rem, 14vw, 16rem);
+}
+.memory.side-r {
+  right: clamp(1rem, 14vw, 16rem);
+  text-align: right;
+  grid-template-columns: 1fr auto;
+}
+.memory.side-r .m-dot {
+  order: 2;
+}
+
+.memory.lit {
+  opacity: 1;
+}
+
+.m-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  align-self: center;
+  transition: box-shadow 0.9s var(--ease-out-quint);
+}
+.kind-milestone .m-dot {
+  background: var(--lure);
+  box-shadow: 0 0 12px var(--lure-dim);
+}
+.kind-moment .m-dot {
+  background: var(--plankton-bright);
+  box-shadow: 0 0 12px var(--plankton);
+}
+.memory.lit.kind-milestone .m-dot {
+  box-shadow:
+    0 0 18px var(--lure),
+    0 0 48px var(--lure-dim);
+}
+.memory.lit.kind-moment .m-dot {
+  box-shadow:
+    0 0 18px var(--plankton-bright),
+    0 0 48px var(--plankton);
+}
+
+.m-text {
+  display: block;
+}
+.m-year {
+  display: block;
+  font-family: var(--font-gauge);
+  font-size: 0.78rem;
+  letter-spacing: 0.14em;
+  color: var(--lure);
+}
+.kind-moment .m-year {
+  color: var(--plankton-bright);
+}
+.m-title {
+  display: block;
+  font-size: clamp(1.15rem, 2.6vw, 1.5rem);
+  letter-spacing: 0.04em;
+  text-shadow: 0 0 24px oklch(0.8 0.05 220 / 0);
+  transition: text-shadow 0.9s var(--ease-out-quint);
+}
+.memory.lit .m-title {
+  text-shadow: 0 0 24px oklch(0.85 0.05 220 / 0.45);
+}
+.memory:hover {
+  opacity: 1;
+}
+
+/* ---------- 海底 ---------- */
+
+.seabed {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 4rem 1.5rem 6rem;
+  overflow: hidden;
+}
+.seabed::before {
+  /* 海床裂隙透出的暖光 */
+  content: '';
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 70%;
+  background: radial-gradient(60% 55% at 50% 100%, oklch(0.42 0.11 40 / 0.35), transparent 72%);
+  pointer-events: none;
+}
+.seabed > * {
+  position: relative;
+  max-width: 34rem;
+}
+.seabed h2 {
+  text-shadow: 0 0 36px oklch(0.6 0.12 40 / 0.5);
+}
+.seabed p {
+  color: var(--ink);
+}
+.seabed-sign {
+  margin-top: 3.5rem;
+  font-size: 0.95rem;
+  color: var(--muted);
+  letter-spacing: 0.14em;
+}
+
+/* ---------- 记忆面板 ---------- */
+
+dialog {
+  margin: auto;
+  width: min(34rem, calc(100vw - 2.5rem));
+  background: oklch(0.15 0.03 240 / 0.88);
+  color: var(--ink);
+  border: 1px solid var(--edge);
+  border-radius: 12px;
+  padding: clamp(1.6rem, 4vw, 2.6rem);
+  backdrop-filter: blur(14px); /* 水体理由：面板悬浮在水中 */
+}
+dialog::backdrop {
+  background: oklch(0.05 0.02 250 / 0.55);
+  backdrop-filter: blur(5px);
+}
+dialog[open] {
+  animation: rise 0.4s var(--ease-out-expo);
+}
+@keyframes rise {
+  from {
+    opacity: 0;
+    translate: 0 18px;
+  }
+}
+
+.panel-year {
+  font-family: var(--font-gauge);
+  font-size: 0.82rem;
+  letter-spacing: 0.16em;
+  color: var(--lure);
+}
+dialog h3 {
+  font-size: clamp(1.4rem, 3.5vw, 1.8rem);
+  font-weight: 400;
+  letter-spacing: 0.05em;
+  margin: 0.4rem 0 1.4rem;
+  text-wrap: balance;
+}
+.panel-story p {
+  text-wrap: pretty;
+}
+.panel-story p + p {
+  margin-top: 1em;
+}
+
+.panel-close {
+  position: absolute;
+  top: 0.9rem;
+  right: 1rem;
+  width: 2.4rem;
+  height: 2.4rem;
+  font-size: 1.3rem;
+  line-height: 1;
+  color: var(--muted);
+  background: none;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+.panel-close:hover {
+  color: var(--lure);
+}
+
+.noscript {
+  position: relative;
+  z-index: var(--z-hud);
+  padding: 1rem 1.5rem;
+  text-align: center;
+  color: var(--ink);
+}
+
+/* ---------- 移动端 ---------- */
+
+@media (max-width: 720px) {
+  body {
+    line-height: 1.85;
+  }
+  .memory.side-l,
+  .memory.side-r {
+    left: 1.2rem;
+    right: 1.2rem;
+    max-width: none;
+    text-align: left;
+    grid-template-columns: auto 1fr;
+  }
+  .memory.side-r .m-dot {
+    order: 0;
+  }
+  .hud-depth {
+    font-size: 1rem;
+  }
+  .surfacing {
+    font-size: 0.72rem;
+    padding: 0.5em 1em;
+  }
+}
+
+/* ---------- 降级与减动效 ---------- */
+
+.no-webgl #abyss {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dive-hint {
+    animation: none;
+  }
+  dialog[open] {
+    animation: none;
+  }
+  .memory,
+  .m-dot,
+  .m-title,
+  .socials a,
+  .surfacing {
+    transition-duration: 0.01ms;
+  }
+  .socials a:hover {
+    translate: 0 0;
+  }
+}

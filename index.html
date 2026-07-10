@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Lee 的个人网站——一次向深渊的下潜，一生的记录。深度即时间：越深，越早。" />
+    <meta name="theme-color" content="#0d1b2e" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='13' fill='%23050b14'/%3E%3Ccircle cx='16' cy='16' r='5' fill='%23f2a35e'/%3E%3Ccircle cx='16' cy='16' r='9' fill='none' stroke='%23f2a35e' stroke-opacity='.35' stroke-width='2'/%3E%3C/svg%3E"
+    />
+    <title>Lee · 深渊来信</title>
+  </head>
+  <body>
+    <a class="skip-link" href="#now">跳过下潜，直达内容</a>
+
+    <canvas id="abyss" aria-hidden="true"></canvas>
+    <div id="dim" aria-hidden="true"></div>
+
+    <div class="hud" aria-hidden="true">
+      <p class="hud-depth"><span id="hud-depth-value">0</span> m</p>
+      <p class="hud-year">公元 <span id="hud-year-value">—</span></p>
+    </div>
+
+    <button class="surfacing" id="surfacing" hidden>↑ 浮出水面</button>
+
+    <main id="dive">
+      <section class="surface" id="surface" aria-label="海面">
+        <h1>Lee</h1>
+        <p class="tagline">在无垠黑暗里，记录我的一生。</p>
+        <p class="dive-hint" id="dive-hint">向下滚动 · 开始下潜</p>
+      </section>
+
+      <section class="now" id="now" aria-label="此刻">
+        <h2>此刻 <span class="depth-tag">−20 m</span></h2>
+        <ul class="now-list" id="now-list"></ul>
+        <ul class="socials" id="socials"></ul>
+      </section>
+
+      <section class="memories" id="memories" aria-label="记忆带">
+        <h2 class="visually-hidden">记忆带：人生片段，按深度即年代分布</h2>
+      </section>
+
+      <section class="seabed" id="seabed" aria-label="海底">
+        <h2>海底 · 出生之地</h2>
+        <p id="seabed-text"></p>
+        <p class="seabed-sign">此下再无深渊，此上皆是人生。</p>
+      </section>
+    </main>
+
+    <dialog id="panel" aria-labelledby="panel-title">
+      <button class="panel-close" id="panel-close" aria-label="关闭">×</button>
+      <p class="panel-year" id="panel-year"></p>
+      <h3 id="panel-title"></h3>
+      <div class="panel-story" id="panel-story"></div>
+    </dialog>
+
+    <noscript>
+      <p class="noscript">这片深渊需要 JavaScript 才能下潜。内容目录：此刻 / 记忆带 / 海底。</p>
+    </noscript>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
