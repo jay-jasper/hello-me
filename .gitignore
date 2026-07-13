@@ -8,3 +8,5 @@ dist
 .wav
 !static/sounds/music/*.wav.playwright-mcp
 .serena
+.worktrees/
+.superpowers/
