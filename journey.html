@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="旅路三幕——午后、黄昏、夜。一生的路，走到哪儿写到哪儿。" />
+    <title>旅路三幕 · The Journey</title>
+  </head>
+  <body>
+    <a class="skip-link" href="#terminus">跳到当下</a>
+    <a class="theme-link" href="./index.html">回到深海 →</a>
+
+    <!-- 三幕帧画布（装饰层；记忆光点按钮在各幕内，可交互） -->
+    <div id="frames"></div>
+    <canvas id="dust" aria-hidden="true"></canvas>
+
+    <!-- 语义滚动轨道 -->
+    <main id="script">
+      <section id="prologue"><h1 class="visually-hidden">序章</h1></section>
+      <section id="memories-outline"><h2 class="visually-hidden">记忆</h2></section>
+      <section id="terminus"><h2 class="visually-hidden">当下</h2></section>
+    </main>
+
+    <aside id="hud" aria-hidden="true"></aside>
+
+    <noscript>
+      <p class="noscript">这段旅路需要 JavaScript。内容目录：序章 / 记忆（按年份） / 当下与联系方式。</p>
+    </noscript>
+
+    <script type="module" src="/src/journey/main.ts"></script>
+  </body>
+</html>

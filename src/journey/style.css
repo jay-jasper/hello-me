@@ -1,0 +1,407 @@
+/* ============================================================
+   旅路三幕 / The Journey in Three Acts
+   spec: docs/superpowers/specs/2026-07-14-three-acts-theme-design.md
+   画面 = 三张动画帧交叉渐变；禁拼贴、禁角色动画、禁视差。
+   ============================================================ */
+
+:root {
+  --act1: oklch(0.92 0.05 75);
+  --act2: oklch(0.75 0.12 55);
+  --act3: oklch(0.22 0.05 265);
+  --ember: oklch(0.75 0.14 55); /* 强调：篝火暖橙 */
+  --paper: oklch(0.96 0.012 90);
+  --ink: oklch(0.25 0.02 60);
+
+  --font-serif: 'Noto Serif SC', serif;
+  --font-latin: 'EB Garamond', serif;
+  --step--1: clamp(0.8rem, 0.75rem + 0.25vw, 0.95rem);
+  --step-0: clamp(1rem, 0.92rem + 0.4vw, 1.2rem);
+  --step-1: clamp(1.25rem, 1.1rem + 0.7vw, 1.6rem);
+  --step-display: clamp(2.2rem, 1.7rem + 2.5vw, 4rem);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+html {
+  scrollbar-width: none;
+}
+html::-webkit-scrollbar {
+  display: none;
+}
+
+body {
+  font-family: var(--font-serif);
+  font-size: var(--step-0);
+  line-height: 1.9;
+  color: var(--ink);
+  background: var(--page-bg, var(--act1));
+  overflow-x: hidden;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ---------- 三幕帧 ---------- */
+
+#frames {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+}
+.frame {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-repeat: no-repeat;
+  opacity: 0;
+  will-change: opacity, transform;
+}
+/* 焦点位：人物始终在画面内（竖屏裁切锚点） */
+.frame.act-1 {
+  background-position: 62% 55%;
+}
+.frame.act-2 {
+  background-position: 55% 60%;
+}
+.frame.act-3 {
+  background-position: 62% 70%;
+}
+
+/* ---------- 粒子画布 ---------- */
+
+#dust {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 20;
+}
+
+/* ---------- 记忆光点（在幕内，随帧渐隐与推镜） ---------- */
+
+.light {
+  position: absolute;
+  width: 34px;
+  height: 34px;
+  border: none;
+  cursor: pointer;
+  background: radial-gradient(circle, oklch(0.9 0.1 60 / 0.95) 0%, oklch(0.85 0.13 55 / 0.5) 35%, transparent 70%);
+  border-radius: 50%;
+  transform: translate(-50%, -50%) scale(0.8);
+  transition:
+    transform 500ms cubic-bezier(0.25, 1, 0.5, 1),
+    filter 500ms;
+  filter: drop-shadow(0 0 4px oklch(0.85 0.13 55 / 0.4));
+  animation: light-breathe 3.4s ease-in-out infinite alternate;
+}
+.light.lit {
+  transform: translate(-50%, -50%) scale(1.15);
+  filter: drop-shadow(0 0 14px oklch(0.85 0.13 55 / 0.8));
+}
+@keyframes light-breathe {
+  from {
+    opacity: 0.75;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.light-tag {
+  position: absolute;
+  bottom: 130%;
+  left: 50%;
+  transform: translate(-50%, 6px);
+  white-space: nowrap;
+  padding: 0.15em 0.8em;
+  background: oklch(0.96 0.012 90 / 0.92);
+  color: var(--ink);
+  font-size: var(--step--1);
+  border-radius: 2px;
+  opacity: 0;
+  transition:
+    opacity 500ms,
+    transform 500ms cubic-bezier(0.25, 1, 0.5, 1);
+  pointer-events: none;
+}
+.light.lit .light-tag {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+.light-year {
+  font-family: var(--font-latin);
+  font-variant-numeric: oldstyle-nums;
+  margin-right: 0.6em;
+  color: oklch(0.55 0.12 55);
+}
+
+/* ---------- 序章（叠第一幕天空留白） ---------- */
+
+#intro {
+  position: absolute;
+  top: 12vh;
+  left: clamp(1.5rem, 8vw, 10rem);
+  max-width: 24em;
+  transition:
+    opacity 1200ms ease-out,
+    transform 1200ms ease-out;
+}
+#intro.departed {
+  opacity: 0;
+  transform: translateY(-2vh);
+}
+#intro h1,
+#intro .tagline,
+#intro .hint {
+  /* 纸色衬底保证浅底对比 ≥ 4.5:1 */
+  background: oklch(0.96 0.012 90 / 0.55);
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  padding: 0.05em 0.35em;
+  width: fit-content;
+}
+#intro h1 {
+  font-size: var(--step-display);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  line-height: 1.3;
+}
+#intro .tagline {
+  margin-top: 0.8em;
+  font-size: var(--step-1);
+}
+#intro .hint {
+  margin-top: 2.4em;
+  font-size: var(--step-0);
+  animation: hint-bob 2.4s ease-in-out infinite;
+}
+@keyframes hint-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(6px);
+  }
+}
+
+/* ---------- 终点（叠第三幕，篝火旁） ---------- */
+
+#now {
+  position: absolute;
+  inset: 0;
+  color: var(--paper);
+}
+#now .now-lines {
+  position: absolute;
+  top: 14vh;
+  left: clamp(1.5rem, 9vw, 12rem);
+  max-inline-size: 24em;
+  font-size: var(--step-1);
+  text-shadow: 0 1px 12px oklch(0.1 0.03 265 / 0.6);
+}
+#now .now-lines p {
+  margin-bottom: 0.6em;
+}
+#now .campfire-links {
+  position: absolute;
+  right: clamp(1.5rem, 12vw, 16rem);
+  bottom: 24vh;
+  list-style: none;
+  text-align: right;
+}
+#now .campfire-links li {
+  margin-bottom: 0.9em;
+}
+#now .campfire-links a {
+  color: oklch(0.88 0.09 60);
+  font-family: var(--font-latin);
+  font-size: var(--step-1);
+  letter-spacing: 0.06em;
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition:
+    border-color 300ms,
+    text-shadow 300ms;
+}
+#now .campfire-links a:hover,
+#now .campfire-links a:focus-visible {
+  border-bottom-color: oklch(0.88 0.09 60);
+  text-shadow: 0 0 14px oklch(0.8 0.13 55 / 0.7);
+}
+#now .epilogue {
+  position: absolute;
+  bottom: 7vh;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-size: var(--step-0);
+  color: oklch(0.96 0.012 90 / 0.85);
+  text-shadow: 0 1px 10px oklch(0.1 0.03 265 / 0.6);
+}
+
+/* ---------- 纸面故事面板 ---------- */
+
+.story-panel {
+  margin: auto;
+  border: none;
+  max-width: min(38em, 86vw);
+  background: var(--paper);
+  color: var(--ink);
+  padding: clamp(1.6rem, 4vw, 3rem) clamp(1.4rem, 5vw, 3.4rem);
+  border-radius: 3px;
+  box-shadow: 0 6px 30px oklch(0.2 0.02 260 / 0.3);
+  opacity: 0;
+  transform: translateY(14px);
+  transition:
+    opacity 300ms,
+    transform 300ms,
+    overlay 300ms allow-discrete,
+    display 300ms allow-discrete;
+}
+.story-panel[open] {
+  opacity: 1;
+  transform: translateY(0);
+  transition-duration: 400ms;
+}
+@starting-style {
+  .story-panel[open] {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+.story-panel::backdrop {
+  background: oklch(0.15 0.03 265 / 0.35);
+}
+.story-date {
+  font-family: var(--font-latin);
+  font-style: italic;
+  font-variant-numeric: oldstyle-nums;
+  color: oklch(0.55 0.12 55);
+}
+.story-title {
+  font-size: var(--step-1);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  margin: 0.2em 0 0.8em;
+}
+.story-body p {
+  margin-bottom: 1em;
+  max-inline-size: 38em;
+}
+.story-close {
+  margin-top: 1.2em;
+  border: none;
+  background: none;
+  font-family: var(--font-serif);
+  font-size: var(--step-0);
+  color: oklch(0.55 0.12 55);
+  cursor: pointer;
+}
+
+#frames.dimmed {
+  filter: blur(3px) brightness(0.85) saturate(0.85);
+  transition: filter 400ms;
+}
+
+/* ---------- HUD / 链接 / skip ---------- */
+
+#hud {
+  position: fixed;
+  right: clamp(1rem, 3vw, 2.5rem);
+  bottom: clamp(1rem, 3vh, 2rem);
+  z-index: 30;
+  font-family: var(--font-latin);
+  font-variant-numeric: oldstyle-nums;
+  font-size: var(--step-1);
+  color: var(--paper);
+  text-shadow: 0 1px 8px oklch(0.2 0.03 265 / 0.55);
+  user-select: none;
+}
+
+.theme-link {
+  position: fixed;
+  top: 1rem;
+  right: clamp(1rem, 3vw, 2.5rem);
+  z-index: 30;
+  font-size: var(--step--1);
+  color: oklch(0.96 0.012 90 / 0.6);
+  text-shadow: 0 1px 6px oklch(0.2 0.03 265 / 0.5);
+  text-decoration: none;
+}
+.theme-link:hover {
+  color: oklch(0.96 0.012 90 / 0.95);
+}
+
+.skip-link {
+  position: fixed;
+  top: -100px;
+  left: 1rem;
+  z-index: 40;
+  padding: 0.4em 1em;
+  background: var(--paper);
+  color: var(--ink);
+  border-radius: 2px;
+  transition: top 200ms;
+}
+.skip-link:focus {
+  top: 1rem;
+}
+
+:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px var(--ember),
+    0 0 14px 4px oklch(0.75 0.14 55 / 0.5);
+  border-radius: 4px;
+}
+
+.noscript {
+  position: fixed;
+  inset: auto 1rem 1rem;
+  background: var(--paper);
+  padding: 1em;
+}
+
+/* ---------- reduced-motion ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .light,
+  #intro .hint {
+    animation: none;
+  }
+  .light,
+  .light-tag,
+  .story-panel,
+  #intro {
+    transition: none;
+  }
+  .frame {
+    transform: none !important; /* 关推镜，只留透明度淡变 */
+  }
+}
+
+/* ---------- 移动端 ---------- */
+
+@media (max-width: 768px) {
+  #now .campfire-links {
+    right: 1.5rem;
+    bottom: 30vh;
+  }
+  #now .epilogue {
+    white-space: normal;
+    width: 86vw;
+    text-align: center;
+  }
+  #hud {
+    font-size: var(--step-0);
+  }
+}
