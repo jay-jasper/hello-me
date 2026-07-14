@@ -12,9 +12,7 @@
     "three": "^0.170.0"
   },
   "devDependencies": {
-    "@fontsource/eb-garamond": "^5.2.7",
     "@fontsource/fragment-mono": "^5.1.0",
-    "@fontsource/noto-serif-sc": "^5.2.9",
     "@types/three": "^0.170.0",
     "lxgw-wenkai-screen-webfont": "^1.7.0",
     "typescript": "^5.6.0",

@@ -8,9 +8,7 @@
     "noEmit": true,
     "isolatedModules": true,
     "skipLibCheck": true,
-    "useDefineForClassFields": true,
-    "types": ["vite/client"]
+    "useDefineForClassFields": true
   },
-  "include": ["src"],
-  "exclude": ["src/road/journey.check.ts"]
+  "include": ["src"]
 }
