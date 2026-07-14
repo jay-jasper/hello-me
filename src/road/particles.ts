@@ -141,6 +141,32 @@ export function createParticles(container: HTMLElement, mobile: boolean): Partic
   const meteorState = meteors.map(() => ({ t: 2 + Math.random() * 4, active: false, x: 0, y: 0 }))
   let shower = false
 
+  // ---- 归鸟剪影（黄昏，远层稀疏，普通混合的深色小 V） ----
+  const birds: THREE.Sprite[] = []
+  if (!mobile) {
+    const c = document.createElement('canvas')
+    c.width = 64
+    c.height = 32
+    const g = c.getContext('2d')!
+    g.strokeStyle = 'rgba(40,30,30,0.9)'
+    g.lineWidth = 4
+    g.lineCap = 'round'
+    g.beginPath()
+    g.moveTo(6, 26)
+    g.quadraticCurveTo(20, 6, 32, 22)
+    g.quadraticCurveTo(44, 6, 58, 26)
+    g.stroke()
+    const btex = new THREE.CanvasTexture(c)
+    for (let i = 0; i < 5; i++) {
+      const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: btex, transparent: true, opacity: 0 }))
+      const sc = 10 + Math.random() * 8
+      s.scale.set(sc * 2, sc, 1)
+      s.position.set(Math.random() * W, H * (0.12 + Math.random() * 0.25), 0)
+      scene.add(s)
+      birds.push(s)
+    }
+  }
+
   let burstPower = 0
   let last = performance.now()
 
@@ -178,6 +204,16 @@ export function createParticles(container: HTMLElement, mobile: boolean): Partic
     }
     geo.attributes.position.needsUpdate = true
     geo.attributes.color.needsUpdate = true
+
+    // 黄昏归鸟：缓慢向前滑翔，其余相位隐去
+    const duskAmt = phase === 'dusk' ? 1 : 0
+    for (let i = 0; i < birds.length; i++) {
+      const b = birds[i]
+      b.material.opacity += (duskAmt * 0.55 - b.material.opacity) * 0.02
+      b.position.x += (14 + i * 3) * dt
+      b.position.y += Math.sin(now * 0.0012 + i * 3) * 0.12
+      if (b.position.x > W + 40) b.position.x = -40
+    }
 
     // 夜段星星渐显
     const night = progress > 0.72 ? Math.min(1, (progress - 0.72) / 0.16) : 0
