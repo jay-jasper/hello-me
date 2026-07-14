@@ -67,6 +67,13 @@ export function progressForYear(year: number, birthYear: number, nowYear: number
   return round(0.08 + Math.min(1, Math.max(0, t)) * 0.8)
 }
 
+// progress → 年份（HUD 路标用），钳在 [birthYear, nowYear]
+export function yearForProgress(progress: number, birthYear: number, nowYear: number): number {
+  const t = (progress - 0.08) / 0.8
+  const y = Math.round(birthYear + Math.min(1, Math.max(0, t)) * (nowYear - birthYear))
+  return y
+}
+
 export function phaseAt(progress: number): Phase {
   if (progress < 0.2) return 'dawn'
   if (progress < 0.55) return 'day'

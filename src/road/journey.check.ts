@@ -1,6 +1,12 @@
 // journey.ts 自检。跑法：node src/road/journey.check.ts（Node 22+ 原生剥类型）
 import assert from 'node:assert'
-import { skyAt, meadowAt, oklchCss, hazeMix, progressForYear, phaseAt } from './journey.ts'
+import { skyAt, meadowAt, oklchCss, hazeMix, progressForYear, phaseAt, yearForProgress } from './journey.ts'
+
+// 反解：progressForYear 的逆
+assert.equal(yearForProgress(0.08, 1994, 2026), 1994)
+assert.equal(yearForProgress(0.88, 1994, 2026), 2026)
+assert.equal(yearForProgress(0, 1994, 2026), 1994)
+assert.equal(yearForProgress(1, 1994, 2026), 2026)
 
 // 停靠点端值精确命中 spec token
 assert.deepEqual(skyAt(0), { l: 0.9, c: 0.04, h: 60 })

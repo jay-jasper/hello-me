@@ -81,8 +81,123 @@ body {
   inset: 0;
   z-index: 90;
   pointer-events: none;
-  opacity: 0.03;
+  opacity: 0.013;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ---------- 场景层 ---------- */
+
+/* 画作素材层：AI 生成的芙莉莲画风条带，repeat-x 平铺 */
+
+.layer.sky {
+  background: linear-gradient(to bottom, var(--sky-now) 0%, var(--sky-low) 66%, var(--sky-low) 100%);
+}
+.clouds {
+  position: absolute;
+  top: 3vh;
+  left: 0;
+  right: 0;
+  height: 40vh; /* 云只在天空区（上 66%）内 */
+  background-repeat: repeat-x;
+  background-size: auto 100%;
+  opacity: 0.9;
+  transition: opacity 1200ms linear;
+}
+
+/* 地平线锁定 66vh（构图·低地平线律）：山脚落地平线，原野从地平线铺到路面 */
+.layer.mountains {
+  background-repeat: repeat-x;
+  background-size: auto 22vh;
+  background-position-y: 44vh; /* 底边 = 66vh */
+  opacity: 0.82; /* 空气透视：远山几乎溶进天空 */
+  mask-image: linear-gradient(to bottom, black 0 58vh, transparent 66vh);
+}
+
+.layer.meadow {
+  background-repeat: repeat-x;
+  background-size: auto 26vh;
+  background-position-y: 65vh; /* 顶边压住山脚，画到 91vh，被路面层盖过 */
+}
+
+.road-art {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 34vh;
+  background-repeat: repeat-x;
+  background-size: auto 100%;
+}
+
+.layer.foreground {
+  background-repeat: repeat-x;
+  background-size: auto 18vh;
+  background-position-y: bottom;
+}
+
+/* 时刻调色幕：multiply 染色让画作随路程变时刻 */
+.scene-tint {
+  position: absolute;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  background: var(--tint-color, transparent);
+  opacity: var(--tint-alpha, 0);
+  mix-blend-mode: multiply;
+}
+#stage {
+  filter: brightness(var(--scene-brightness, 1)) saturate(var(--scene-saturate, 1));
+}
+
+.cloud-shadow {
+  position: absolute;
+  bottom: 8%;
+  width: 46vw;
+  height: 12vh;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, oklch(0.2 0.02 260) 0%, transparent 70%);
+  opacity: var(--cloud-shadow-opacity, 0.1);
+  animation: shadow-drift 60s linear infinite;
+  transition: opacity 1200ms linear;
+}
+@keyframes shadow-drift {
+  from {
+    transform: translateX(-30vw);
+  }
+  to {
+    transform: translateX(60vw);
+  }
+}
+
+.layer.road {
+  z-index: 5;
+}
+
+.layer.foreground {
+  z-index: 8;
+  pointer-events: none;
+}
+
+/* 旅人：画作素材，≤8vh，左 1/3，下 1/3 区域内；黄昏随 --traveler-darken 压成剪影 */
+.traveler {
+  position: absolute;
+  left: 33vw;
+  bottom: 9vh; /* 脚落在土路上 */
+  height: 8vh;
+  z-index: 6;
+  transition: transform 600ms ease-out;
+}
+.traveler-img {
+  height: 100%;
+  width: auto;
+  filter: brightness(var(--traveler-darken, 1));
+  transition: filter 800ms linear;
+}
+.traveler.step-b {
+  transform: translateY(-0.3vh); /* 步行微起伏 */
+}
+.traveler.arrived {
+  transform: translateY(-4px); /* 停步望天 */
 }
 
 /* ---------- 语义内容（滚动轨道） ---------- */
@@ -90,6 +205,15 @@ body {
 #journey {
   position: relative;
   z-index: 1;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 .skip-link {
@@ -117,6 +241,136 @@ body {
   border-radius: 4px;
 }
 
+/* ---------- 蓝月草花丛 ---------- */
+
+.flower {
+  position: absolute;
+  bottom: 16vh; /* 立在路旁 */
+  width: 7vh;
+  height: 9vh;
+  border: none;
+  background: none;
+  cursor: pointer;
+  transform: translateX(-50%) scale(calc(var(--flower-scale, 1) * 0.9));
+  transition: transform 500ms cubic-bezier(0.25, 1, 0.5, 1); /* ease-out-quart */
+}
+.flower img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  transform: scaleX(var(--flower-flip, 1));
+  filter: drop-shadow(0 0 6px oklch(0.8 0.09 285 / 0.25));
+  transition: filter 500ms;
+}
+.flower.bloom {
+  transform: translateX(-50%) scale(var(--flower-scale, 1));
+}
+.flower.bloom img {
+  filter: drop-shadow(0 0 14px oklch(0.8 0.09 285 / 0.65));
+}
+
+/* 年份标题小签：盛开时浮现 */
+.flower-tag {
+  position: absolute;
+  bottom: 105%;
+  left: 50%;
+  transform: translate(-50%, 6px);
+  white-space: nowrap;
+  padding: 0.2em 0.9em;
+  background: oklch(0.96 0.012 90 / 0.92);
+  color: var(--ink-on-paper);
+  font-size: var(--step--1);
+  border-radius: 2px;
+  opacity: 0;
+  transition:
+    opacity 500ms,
+    transform 500ms cubic-bezier(0.25, 1, 0.5, 1);
+  pointer-events: none;
+}
+.flower.bloom .flower-tag {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+.flower-year {
+  font-family: var(--font-latin);
+  font-variant-numeric: oldstyle-nums;
+  margin-right: 0.6em;
+  color: oklch(0.5 0.09 285);
+}
+
+/* ---------- 纸面故事面板 ---------- */
+
+.story-panel {
+  margin: auto;
+  border: none;
+  max-width: min(38em, 86vw);
+  background: var(--paper);
+  color: var(--ink-on-paper);
+  padding: clamp(1.6rem, 4vw, 3rem) clamp(1.4rem, 5vw, 3.4rem);
+  border-radius: 3px;
+  /* 手记页，不堆阴影 */
+  box-shadow: 0 6px 30px oklch(0.2 0.02 260 / 0.25);
+  opacity: 0;
+  transform: translateY(14px);
+  transition:
+    opacity 300ms,
+    transform 300ms,
+    overlay 300ms allow-discrete,
+    display 300ms allow-discrete;
+}
+.story-panel[open] {
+  opacity: 1;
+  transform: translateY(0);
+  transition-duration: 400ms; /* 展开 400ms / 收起 300ms */
+}
+@starting-style {
+  .story-panel[open] {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+.story-panel::backdrop {
+  background: oklch(0.2 0.03 265 / 0.25);
+}
+/* 面板纸纹 */
+.story-panel article {
+  position: relative;
+}
+.story-date {
+  font-family: var(--font-latin);
+  font-style: italic;
+  font-variant-numeric: oldstyle-nums;
+  color: oklch(0.5 0.09 285);
+  font-size: var(--step-0);
+}
+.story-title {
+  font-size: var(--step-2);
+  margin: 0.2em 0 0.8em;
+}
+.story-body p {
+  margin-bottom: 1em;
+  max-inline-size: 38em;
+}
+.story-close {
+  margin-top: 1.2em;
+  border: none;
+  background: none;
+  font-family: var(--font-serif);
+  font-size: var(--step-0);
+  color: oklch(0.5 0.09 285);
+  cursor: pointer;
+}
+.story-close:hover {
+  color: oklch(0.4 0.1 285);
+}
+
+/* 面板开启时舞台退后 */
+#stage.dimmed {
+  filter: brightness(calc(var(--scene-brightness, 1) * 0.85)) saturate(calc(var(--scene-saturate, 1) * 0.8))
+    blur(3px);
+  transition: filter 400ms;
+}
+
 /* ---------- HUD 年份路标 ---------- */
 
 #hud {
@@ -140,6 +394,153 @@ body {
   text-align: right;
 }
 
+/* ---------- 序章 ---------- */
+
+#prologue {
+  position: relative;
+  height: 100vh;
+}
+.signpost-art {
+  position: absolute; /* 随序章滚走，速度与路面一致 */
+  left: 12vw;
+  bottom: 7vh;
+  height: 20vh;
+  pointer-events: none;
+}
+#prologue .signpost-text {
+  position: absolute;
+  top: 16vh;
+  left: clamp(1.5rem, 10vw, 12rem);
+  color: var(--ink-on-paper);
+}
+#prologue h1 {
+  font-size: var(--step-display);
+  letter-spacing: 0.08em;
+}
+#prologue .tagline {
+  margin-top: 0.6em;
+  font-size: var(--step-1);
+  color: oklch(0.35 0.03 60);
+}
+#prologue .hint {
+  margin-top: 3em;
+  font-size: var(--step-0);
+  color: oklch(0.42 0.03 60);
+  animation: hint-bob 2.4s ease-in-out infinite;
+}
+@keyframes hint-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(6px);
+  }
+}
+
+/* 粒子画布：盖在调色幕之上，星光不被 multiply 压暗 */
+.particle-canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 70;
+  pointer-events: none;
+}
+
+/* 启程：路标文字随风散去 */
+#prologue .signpost-text {
+  transition:
+    opacity 1400ms ease-out,
+    transform 1400ms ease-out,
+    filter 1400ms ease-out;
+}
+#prologue.departed .signpost-text {
+  opacity: 0;
+  transform: translateX(-3vw);
+  filter: blur(4px);
+}
+
+/* ---------- 竖排旁白（章节题词） ---------- */
+
+.road-aside {
+  position: absolute;
+  bottom: 42vh;
+  writing-mode: vertical-rl;
+  font-size: var(--step-1);
+  letter-spacing: 0.2em;
+  color: oklch(0.96 0.012 90 / 0.6);
+  text-shadow: 0 1px 10px oklch(0.2 0.02 260 / 0.3);
+  pointer-events: none;
+  user-select: none;
+}
+
+/* ---------- 终点 ---------- */
+
+#terminus {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 100vh;
+}
+.terminus-inner {
+  position: relative;
+  height: 100%;
+  color: var(--paper); /* 夜空上纸色字，对比 ≥ 7:1 */
+}
+.now-block {
+  position: absolute;
+  top: 18vh;
+  left: clamp(1.5rem, 12vw, 14rem);
+  max-inline-size: 24em;
+  font-size: var(--step-1);
+}
+.now-block p {
+  margin-bottom: 0.6em;
+}
+.waypost {
+  position: absolute;
+  right: 14vw;
+  bottom: 10vh;
+}
+.waypost-art {
+  height: 34vh;
+  filter: brightness(0.55); /* 夜里的木牌 */
+}
+.waypost ul {
+  position: absolute;
+  top: 8%;
+  left: 70%;
+  list-style: none;
+}
+.waypost li {
+  margin-bottom: 1.1em;
+}
+.waypost a {
+  color: var(--paper);
+  text-decoration: none;
+  font-family: var(--font-latin);
+  font-size: var(--step-1);
+  letter-spacing: 0.06em;
+  border-bottom: 1px solid transparent;
+  transition:
+    border-color 300ms,
+    text-shadow 300ms;
+}
+.waypost a:hover,
+.waypost a:focus-visible {
+  border-bottom-color: var(--paper);
+  text-shadow: 0 0 12px oklch(0.96 0.012 90 / 0.6);
+}
+.epilogue {
+  position: absolute;
+  bottom: 6vh;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-size: var(--step-0);
+  color: oklch(0.96 0.012 90 / 0.85);
+}
+
 /* ---------- 标题字距（构图外的版式律） ---------- */
 
 h1,
@@ -148,4 +549,77 @@ h3 {
   font-weight: 600;
   letter-spacing: 0.05em;
   line-height: 1.4;
+}
+
+/* ---------- 回深海入口（不显眼） ---------- */
+
+.theme-link {
+  position: fixed;
+  top: 1rem;
+  right: clamp(1rem, 3vw, 2.5rem);
+  z-index: 100;
+  font-size: var(--step--1);
+  color: oklch(0.96 0.012 90 / 0.55);
+  text-shadow: 0 1px 6px oklch(0.2 0.02 260 / 0.4);
+  text-decoration: none;
+  transition: color 300ms;
+}
+.theme-link:hover {
+  color: oklch(0.96 0.012 90 / 0.9);
+}
+
+/* ---------- 静态星空（reduced-motion / 无 WebGL 的夜段长曝） ---------- */
+
+.static-stars {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  border-radius: 50%;
+  z-index: 70;
+  pointer-events: none;
+  opacity: var(--night-amount, 0);
+  transition: opacity 800ms linear;
+}
+
+/* ---------- reduced-motion：无自主动效，滚动驱动保留 ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .cloud-shadow,
+  #prologue .hint {
+    animation: none;
+  }
+  .traveler,
+  .traveler-img,
+  .flower,
+  .flower-tag,
+  .story-panel,
+  #prologue .signpost-text {
+    transition: none;
+  }
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* ---------- 移动端（≤768px）：三层制，近景删除 ---------- */
+
+@media (max-width: 768px) {
+  .layer.foreground {
+    display: none;
+  }
+  .road-aside {
+    display: none;
+  }
+  .signpost-art {
+    left: 6vw;
+    height: 24vh;
+  }
+  .waypost {
+    right: 6vw;
+  }
+  #hud {
+    font-size: var(--step-0);
+  }
 }
