@@ -49,13 +49,49 @@ const isMobile = window.innerWidth <= 768
 // ---------- 帧 ----------
 
 const framesEl = document.getElementById('frames')!
+
+// 风场置换滤镜（SMIL 湍流缓变）：只作用于各幕的风动层
+document.body.insertAdjacentHTML(
+  'beforeend',
+  `<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+    <filter id="wind-warp" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.006 0.018" numOctaves="1" seed="7" result="n">
+        <animate attributeName="seed" dur="9s" values="7;8;9;7" repeatCount="indefinite"/>
+        <animate attributeName="baseFrequency" dur="7s" values="0.006 0.018;0.008 0.014;0.006 0.018" repeatCount="indefinite"/>
+      </feTurbulence>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="7" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+  </defs></svg>`,
+)
+
 const frameEls: HTMLElement[] = [act1Url, act2Url, act3Url].map((url, i) => {
   const f = document.createElement('div')
   f.className = `frame act-${i + 1}`
   f.style.backgroundImage = `url(${url})`
+  if (!reducedMotion && !isMobile) {
+    // 风动层：同一帧图 + 置换滤镜，蒙版只露草地/植被带——草在风里
+    const wind = document.createElement('div')
+    wind.className = 'frame-wind'
+    wind.style.backgroundImage = `url(${url})`
+    f.appendChild(wind)
+  }
   framesEl.appendChild(f)
   return f
 })
+
+// 幕内光效：日光呼吸（幕1/2）与篝火闪动（幕3）
+const glow1 = document.createElement('div')
+glow1.className = 'sun-bloom act1-sun'
+frameEls[0].appendChild(glow1)
+const glow2 = document.createElement('div')
+glow2.className = 'sun-bloom act2-sun'
+frameEls[1].appendChild(glow2)
+const fireGlow = document.createElement('div')
+fireGlow.className = 'fire-glow'
+frameEls[2].appendChild(fireGlow)
+const fireLight = document.createElement('div')
+fireLight.className = 'fire-light'
+frameEls[2].appendChild(fireLight)
 
 // ---------- 序章（第一幕内） ----------
 

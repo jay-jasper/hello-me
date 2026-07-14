@@ -76,6 +76,94 @@ body {
   background-position: 62% 70%;
 }
 
+/* ---------- 帧内微动效（把静帧做"活"） ---------- */
+
+/* 风动层：同帧图 + 湍流置换，蒙版只露下部植被带 */
+.frame-wind {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: inherit;
+  filter: url(#wind-warp);
+  mask-image: linear-gradient(to bottom, transparent 52%, black 72%);
+  pointer-events: none;
+}
+
+/* 日光呼吸 */
+.sun-bloom {
+  position: absolute;
+  width: 46vmax;
+  height: 46vmax;
+  border-radius: 50%;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  animation: sun-breathe 7s ease-in-out infinite alternate;
+}
+.act1-sun {
+  right: -12vmax;
+  top: 8vh;
+  background: radial-gradient(circle, oklch(0.97 0.06 85 / 0.5) 0%, oklch(0.95 0.08 80 / 0.18) 40%, transparent 70%);
+}
+.act2-sun {
+  left: 24vw;
+  top: 46vh;
+  width: 36vmax;
+  height: 36vmax;
+  background: radial-gradient(circle, oklch(0.95 0.1 70 / 0.55) 0%, oklch(0.9 0.12 60 / 0.2) 40%, transparent 70%);
+}
+@keyframes sun-breathe {
+  from {
+    opacity: 0.55;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1.03);
+  }
+}
+
+/* 篝火：核心光斑快闪 + 大范围暖光慢晃 */
+.fire-glow {
+  position: absolute;
+  left: 56%;
+  top: 80%;
+  width: 20vmax;
+  height: 14vmax;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  background: radial-gradient(circle, oklch(0.85 0.16 55 / 0.75) 0%, oklch(0.7 0.17 45 / 0.3) 45%, transparent 72%);
+  animation: fire-flicker 1.7s steps(12) infinite;
+}
+.fire-light {
+  position: absolute;
+  left: 56%;
+  top: 82%;
+  width: 60vmax;
+  height: 36vmax;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  pointer-events: none;
+  mix-blend-mode: soft-light;
+  background: radial-gradient(circle, oklch(0.8 0.15 55 / 0.8) 0%, transparent 65%);
+  animation: fire-sway 3.1s ease-in-out infinite alternate;
+}
+@keyframes fire-flicker {
+  0% { opacity: 0.7; transform: translate(-50%, -50%) scale(0.97); }
+  18% { opacity: 0.95; transform: translate(-50%, -51%) scale(1.05); }
+  34% { opacity: 0.75; transform: translate(-50.4%, -50%) scale(0.99); }
+  52% { opacity: 1; transform: translate(-49.6%, -51.5%) scale(1.08); }
+  68% { opacity: 0.8; transform: translate(-50%, -50%) scale(1.0); }
+  84% { opacity: 0.92; transform: translate(-50.3%, -50.8%) scale(1.04); }
+  100% { opacity: 0.7; transform: translate(-50%, -50%) scale(0.97); }
+}
+@keyframes fire-sway {
+  from { opacity: 0.5; }
+  to { opacity: 0.9; }
+}
+
 /* ---------- 粒子画布 ---------- */
 
 #dust {
@@ -375,8 +463,14 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .light,
-  #intro .hint {
+  #intro .hint,
+  .sun-bloom,
+  .fire-glow,
+  .fire-light {
     animation: none;
+  }
+  .frame-wind {
+    display: none;
   }
   .light,
   .light-tag,
