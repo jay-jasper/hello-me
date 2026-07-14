@@ -102,6 +102,16 @@ body {
   background-size: auto 100%;
   opacity: 0.9;
   transition: opacity 1200ms linear;
+  /* 云永远在漂——停下来时间也在走 */
+  animation: clouds-drift 160s linear infinite;
+}
+@keyframes clouds-drift {
+  from {
+    background-position-x: 0;
+  }
+  to {
+    background-position-x: -1672px; /* 一张云图宽度，无缝循环 */
+  }
 }
 
 /* 地平线锁定 66vh（构图·低地平线律）：山脚落地平线，原野从地平线铺到路面 */
@@ -129,10 +139,23 @@ body {
   background-size: auto 100%;
 }
 
-.layer.foreground {
+.layer.foreground .fg-art {
+  position: absolute;
+  inset: 0;
   background-repeat: repeat-x;
   background-size: auto 18vh;
   background-position-y: bottom;
+  /* 风摆：贴地摇曳 */
+  transform-origin: bottom center;
+  animation: grass-sway 5.2s ease-in-out infinite alternate;
+}
+@keyframes grass-sway {
+  from {
+    transform: skewX(-1.1deg);
+  }
+  to {
+    transform: skewX(1.4deg);
+  }
 }
 
 /* 时刻调色幕：multiply 染色让画作随路程变时刻 */
@@ -193,11 +216,23 @@ body {
   filter: brightness(var(--traveler-darken, 1));
   transition: filter 800ms linear;
 }
-.traveler.step-b {
-  transform: translateY(-0.3vh); /* 步行微起伏 */
+.traveler.backward {
+  transform: scaleX(-1); /* 倒走面朝来路 */
 }
-.traveler.arrived {
-  transform: translateY(-4px); /* 停步望天 */
+.traveler.idle .traveler-img {
+  animation: idle-breathe 3s ease-in-out infinite alternate; /* 停步呼吸 */
+}
+@keyframes idle-breathe {
+  from {
+    transform: translateY(0) rotate(0.4deg);
+  }
+  to {
+    transform: translateY(-0.4vh) rotate(-0.4deg);
+  }
+}
+.traveler.arrived .traveler-img {
+  animation: none;
+  transform: translateY(-4px); /* 终点停步 */
 }
 
 /* ---------- 语义内容（滚动轨道） ---------- */
@@ -261,6 +296,19 @@ body {
   transform: scaleX(var(--flower-flip, 1));
   filter: drop-shadow(0 0 6px oklch(0.8 0.09 285 / 0.25));
   transition: filter 500ms;
+  transform-origin: bottom center;
+  animation: flower-sway 4s ease-in-out infinite alternate;
+}
+@keyframes flower-sway {
+  from {
+    rotate: -2.2deg;
+  }
+  to {
+    rotate: 2.6deg;
+  }
+}
+.flower.bloom img {
+  animation-duration: 2.6s; /* 靠近时更雀跃 */
 }
 .flower.bloom {
   transform: translateX(-50%) scale(var(--flower-scale, 1));
@@ -587,6 +635,9 @@ h3 {
 
 @media (prefers-reduced-motion: reduce) {
   .cloud-shadow,
+  .clouds,
+  .layer.foreground .fg-art,
+  .flower img,
   #prologue .hint {
     animation: none;
   }

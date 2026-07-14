@@ -7,7 +7,10 @@ import mountainsUrl from './assets/mountains.png'
 import meadowUrl from './assets/meadow.png'
 import roadUrl from './assets/road.png'
 import grassfgUrl from './assets/grassfg.png'
-import travelerUrl from './assets/traveler.png'
+import walk1 from './assets/walk-1.png'
+import walk2 from './assets/walk-2.png'
+import walk3 from './assets/walk-3.png'
+import walk4 from './assets/walk-4.png'
 
 export type Scenery = {
   update(progress: number, velocity: number): void
@@ -59,16 +62,19 @@ export function createScenery(stage: HTMLElement, screens: number): Scenery {
   const roadArt = el('div', 'road-art', road)
   roadArt.style.backgroundImage = `url(${roadUrl})`
 
-  // ---- L4 近景草 ----
+  // ---- L4 近景草（外层视差，内层风摆） ----
   const fg = el('div', 'layer foreground', stage)
   fg.style.width = `${widthFor(SPEEDS.foreground)}px`
-  fg.style.backgroundImage = `url(${grassfgUrl})`
+  const fgArt = el('div', 'fg-art', fg)
+  fgArt.style.backgroundImage = `url(${grassfgUrl})`
 
-  // ---- 旅人（画作素材，不随层平移，fixed 在左 1/3） ----
+  // ---- 旅人（侧面走路循环帧，不随层平移，fixed 在左 1/3） ----
+  const WALK_FRAMES = [walk1, walk2, walk3, walk4]
   const traveler = el('div', 'traveler', stage)
   const travelerImg = el('img', 'traveler-img', traveler) as HTMLImageElement
-  travelerImg.src = travelerUrl
+  travelerImg.src = WALK_FRAMES[0]
   travelerImg.alt = ''
+  for (const f of WALK_FRAMES) new Image().src = f // 预热，防换帧闪烁
 
   // ---- 时刻调色幕（multiply 染色，让画作素材随路程变时刻） ----
   const tint = el('div', 'scene-tint', stage)
@@ -117,9 +123,14 @@ export function createScenery(stage: HTMLElement, screens: number): Scenery {
     // 夜里云退场给星
     clouds.style.opacity = phase === 'night' ? '0.12' : '0.9'
 
-    // 旅人步行摆动 + 终点停步
+    // 旅人：走路循环帧（速度驱动），停下转 idle 摇曳，倒走镜像
+    const moving = Math.abs(velocity) * worldWidth > 0.5
     walked += Math.abs(velocity) * worldWidth
-    traveler.classList.toggle('step-b', Math.floor(walked / 28) % 2 === 1)
+    if (moving) {
+      travelerImg.src = WALK_FRAMES[Math.floor(walked / 90) % WALK_FRAMES.length]
+    }
+    traveler.classList.toggle('idle', !moving)
+    traveler.classList.toggle('backward', velocity < -0.00002)
     traveler.classList.toggle('arrived', progress > 0.94)
     document.body.style.background = oklchCss(skyC)
     void tint // tint 元素只靠 CSS 变量驱动

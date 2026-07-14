@@ -122,7 +122,25 @@ let progress = 0
 let target = 0
 let lastProgress = 0
 
+// 游戏式键盘行走：←→ / A D 按住即走
+const keys = new Set<string>()
+window.addEventListener('keydown', (e) => {
+  if (['ArrowRight', 'ArrowLeft', 'd', 'a', 'D', 'A'].includes(e.key)) {
+    // 面板开着时交给 dialog
+    if (!document.querySelector('dialog[open]')) {
+      keys.add(e.key.toLowerCase().replace('arrow', ''))
+      e.preventDefault()
+    }
+  }
+})
+window.addEventListener('keyup', (e) => {
+  keys.delete(e.key.toLowerCase().replace('arrow', ''))
+})
+
 function frame() {
+  const walk = (keys.has('right') || keys.has('d') ? 1 : 0) - (keys.has('left') || keys.has('a') ? 1 : 0)
+  if (walk !== 0) window.scrollBy(0, walk * 14)
+
   const max = document.documentElement.scrollHeight - window.innerHeight
   target = max > 0 ? window.scrollY / max : 0
   // spec: lerp 0.08；reduced-motion 直接跟随（滚动驱动，无自主缓动）
