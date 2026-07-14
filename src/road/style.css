@@ -1,0 +1,151 @@
+/* ============================================================
+   旧路 / The Long Road — 芙莉莲风独立主题
+   spec: docs/superpowers/specs/2026-07-14-long-road-theme-design.md
+   与深海站零耦合：不引用 src/style.css 的任何 token。
+   ============================================================ */
+
+:root {
+  /* 时刻停靠点（天空/原野按路程进度由 JS 插值，这里是端值参考与静态降级用） */
+  --dawn-sky: oklch(0.9 0.04 60);
+  --day-sky: oklch(0.87 0.05 230);
+  --dusk-sky: oklch(0.8 0.09 60);
+  --night-sky: oklch(0.26 0.04 265);
+
+  --meadow-day: oklch(0.74 0.07 125);
+  --meadow-dusk: oklch(0.55 0.07 80);
+  --meadow-night: oklch(0.28 0.04 260);
+
+  /* 主题色 */
+  --bluemoon: oklch(0.8 0.09 285); /* 蓝月草：记忆、焦点、交互 */
+  --paper: oklch(0.96 0.012 90); /* 阅读面板米白纸（全程恒定） */
+  --ink-on-paper: oklch(0.25 0.02 60); /* 纸上墨字 */
+
+  /* JS 每帧写入的当前场景色 */
+  --sky-now: var(--dawn-sky);
+  --sky-low: oklch(0.93 0.035 70); /* 地平线处更亮（大气） */
+  --meadow-now: var(--meadow-day);
+  --silhouette: oklch(0.42 0.03 80); /* 剪影色（黄昏加深） */
+
+  /* 版式 */
+  --font-serif: 'Noto Serif SC', serif;
+  --font-latin: 'EB Garamond', serif;
+  --step--1: clamp(0.8rem, 0.75rem + 0.25vw, 0.95rem);
+  --step-0: clamp(1rem, 0.92rem + 0.4vw, 1.2rem);
+  --step-1: clamp(1.25rem, 1.1rem + 0.7vw, 1.6rem);
+  --step-2: clamp(1.56rem, 1.3rem + 1.2vw, 2.2rem);
+  --step-display: clamp(2.4rem, 1.8rem + 3vw, 4.5rem);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scrollbar-width: none;
+}
+html::-webkit-scrollbar {
+  display: none;
+}
+
+body {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-size: var(--step-0);
+  line-height: 1.9;
+  color: var(--ink-on-paper);
+  background: var(--sky-now);
+  overflow-x: hidden;
+}
+
+/* ---------- 舞台与视差层 ---------- */
+
+#stage {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  /* 地平线锁定：天空占上 66%，原野占下 34%（构图·低地平线律） */
+}
+
+.layer {
+  position: absolute;
+  inset: 0;
+  will-change: transform;
+}
+
+/* 纸纹颗粒 overlay（水彩纸感，压数码味） */
+#stage::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 90;
+  pointer-events: none;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ---------- 语义内容（滚动轨道） ---------- */
+
+#journey {
+  position: relative;
+  z-index: 1;
+}
+
+.skip-link {
+  position: fixed;
+  top: -100px;
+  left: 1rem;
+  z-index: 200;
+  padding: 0.4em 1em;
+  background: var(--paper);
+  color: var(--ink-on-paper);
+  border-radius: 2px;
+  transition: top 200ms;
+}
+.skip-link:focus {
+  top: 1rem;
+}
+
+/* ---------- 焦点环（蓝月草光环） ---------- */
+
+:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px var(--bluemoon),
+    0 0 14px 4px oklch(0.8 0.09 285 / 0.45);
+  border-radius: 4px;
+}
+
+/* ---------- HUD 年份路标 ---------- */
+
+#hud {
+  position: fixed;
+  right: clamp(1rem, 3vw, 2.5rem);
+  bottom: clamp(1rem, 3vh, 2rem);
+  z-index: 100;
+  font-family: var(--font-latin);
+  font-variant-numeric: oldstyle-nums;
+  font-size: var(--step-1);
+  letter-spacing: 0.04em;
+  color: var(--paper);
+  text-shadow: 0 1px 8px oklch(0.2 0.02 260 / 0.5);
+  user-select: none;
+}
+#hud .hud-title {
+  display: block;
+  font-family: var(--font-serif);
+  font-size: var(--step--1);
+  opacity: 0.85;
+  text-align: right;
+}
+
+/* ---------- 标题字距（构图外的版式律） ---------- */
+
+h1,
+h2,
+h3 {
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  line-height: 1.4;
+}

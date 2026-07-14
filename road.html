@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="旧路——重走一生之路" />
+    <title>旧路 · The Long Road</title>
+  </head>
+  <body>
+    <!-- 视差舞台（纯装饰，语义内容在 #journey） -->
+    <div id="stage" aria-hidden="true"></div>
+
+    <a class="skip-link" href="#terminus">跳到终点</a>
+
+    <main id="journey">
+      <section id="prologue"><!-- 序章路标：main.ts 填充 --></section>
+      <div id="memories"><!-- 记忆 sections：main.ts 按年份升序填充 --></div>
+      <section id="terminus"><!-- 终点：main.ts 填充 --></section>
+    </main>
+
+    <aside id="hud" aria-hidden="true"></aside>
+
+    <script type="module" src="/src/road/main.ts"></script>
+  </body>
+</html>
