@@ -31,9 +31,7 @@ export function createParticles(canvas: HTMLCanvasElement, mobile: boolean): Par
     })
   }
 
-  // 流星池
-  const meteors = Array.from({ length: 3 }, () => ({ t: 3 + Math.random() * 3, active: false, x: 0, y: 0, life: 0 }))
-  // 篝火位置（第三幕帧内人物旁，视口比例）
+  // 篝火位置（第三幕帧内人物旁，视口比例）；流星已交给 GSAP DOM 元素
   const FIRE = { x: 0.56, y: 0.8 }
 
   let last = performance.now()
@@ -91,40 +89,6 @@ export function createParticles(canvas: HTMLCanvasElement, mobile: boolean): Par
       ctx.fill()
     }
 
-    // 流星（幕3，3~6s 一颗，划向右下）
-    if (o3 > 0.5 && !mobile) {
-      for (const m of meteors) {
-        if (!m.active) {
-          m.t -= dt
-          if (m.t <= 0) {
-            m.active = true
-            m.life = 1
-            m.x = W * (0.1 + Math.random() * 0.6)
-            m.y = H * (0.05 + Math.random() * 0.2)
-          }
-        } else {
-          const sp = 560
-          const nx = m.x + sp * dt
-          const ny = m.y + sp * 0.48 * dt
-          const grad = ctx.createLinearGradient(m.x - 90, m.y - 43, nx, ny)
-          grad.addColorStop(0, 'oklch(0.95 0.02 90 / 0)')
-          grad.addColorStop(1, `oklch(0.97 0.01 90 / ${0.9 * m.life * o3})`)
-          ctx.strokeStyle = grad
-          ctx.lineWidth = 1.6
-          ctx.beginPath()
-          ctx.moveTo(m.x - 90, m.y - 43)
-          ctx.lineTo(nx, ny)
-          ctx.stroke()
-          m.x = nx
-          m.y = ny
-          m.life -= dt * 0.9
-          if (m.life <= 0) {
-            m.active = false
-            m.t = 3 + Math.random() * 3
-          }
-        }
-      }
-    }
   }
 
   return { update }

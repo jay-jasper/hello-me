@@ -1,7 +1,11 @@
 import './style.css'
+import gsap from 'gsap'
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { site } from './config'
 import { memories } from './content/memories'
 import type { Memory } from './content/memories'
+
+gsap.registerPlugin(ScrollTrigger)
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T
 
@@ -138,6 +142,17 @@ function openMemory(m: Memory) {
     $('panel-story').appendChild(p)
   }
   panel.showModal()
+  if (!reduced) {
+    // 浮出：年份 → 标题 → 段落依次上浮
+    gsap.from(['#panel-year', '#panel-title', ...$('panel-story').children], {
+      y: 10,
+      opacity: 0,
+      duration: 0.35,
+      stagger: 0.06,
+      ease: 'power2.out',
+      delay: 0.08,
+    })
+  }
 }
 $('panel-close').addEventListener('click', () => panel.close())
 panel.addEventListener('click', (e) => {
@@ -196,6 +211,7 @@ function layout() {
 
 const hudDepth = $('hud-depth-value')
 const hudYear = $('hud-year-value')
+const hudRoll = { d: 0, y: nowYear }
 const diveHint = $('dive-hint')
 const surfacing = $('surfacing')
 
@@ -206,8 +222,23 @@ function onScroll() {
   requestAnimationFrame(() => {
     ticking = false
     const d = depthAt(scrollY + innerHeight * 0.5)
-    hudDepth.textContent = String(Math.round(d))
-    hudYear.textContent = String(depthToYear(d))
+    if (reduced) {
+      hudDepth.textContent = String(Math.round(d))
+      hudYear.textContent = String(depthToYear(d))
+    } else {
+      // 深度计滚表：数字追赶而非跳变
+      gsap.to(hudRoll, {
+        d,
+        y: depthToYear(d),
+        duration: 0.6,
+        ease: 'power2.out',
+        overwrite: true,
+        onUpdate: () => {
+          hudDepth.textContent = String(Math.round(hudRoll.d))
+          hudYear.textContent = String(Math.round(hudRoll.y))
+        },
+      })
+    }
     diveHint.classList.toggle('gone', scrollY > 40)
     surfacing.hidden = d < 250
     // 越深光越暗：150m 后视野边缘渐渐被黑暗吞没
@@ -233,6 +264,28 @@ async function boot() {
   if (!sceneApi) document.body.classList.add('no-webgl')
   layout()
   onScroll()
+
+  if (!reduced) {
+    // 签名时刻·破水：首屏文字随下潜被水面吞没（scrub 渐隐上移）
+    gsap.to('#surface h1, #surface .tagline', {
+      opacity: 0,
+      y: -30,
+      filter: 'blur(3px)',
+      ease: 'none',
+      scrollTrigger: { start: 0, end: () => innerHeight * 0.7, scrub: true },
+    })
+    // 海底终章：抵达海床，结语逐段浮现（一次性）
+    gsap.from('#seabed h2, #seabed p', {
+      y: 24,
+      opacity: 0,
+      duration: 0.9,
+      stagger: 0.25,
+      ease: 'power2.out',
+      scrollTrigger: { trigger: '#seabed', start: 'top 70%', toggleActions: 'play none none none' },
+    })
+    // 浮出水面按钮：轻轻上浮循环
+    gsap.to('#surfacing', { y: -4, duration: 1.6, yoyo: true, repeat: -1, ease: 'sine.inOut' })
+  }
 }
 
 addEventListener('resize', () => {
