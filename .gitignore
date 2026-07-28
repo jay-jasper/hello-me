@@ -6,7 +6,8 @@ dist
 .env*
 .autosave
 .wav
-!static/sounds/music/*.wav.playwright-mcp
+!static/sounds/music/*.wav
+.playwright-mcp/
 .serena
 .worktrees/
 .superpowers/
