@@ -39,12 +39,16 @@ export function createInstrument(baseUrl: string): Instrument {
     settleReady(ok)
   }
 
+  // 三首曲子的最大同时发音数实测为 7（晨窗），加上用户自己合奏还会更多；
+  // 采样叠加到七八个音很容易冲过 0 dBFS 削波，串一个限制器兜底。
+  const limiter = new Tone.Limiter(-3).toDestination()
+
   const sampler = new Tone.Sampler({
     urls: sampleMap(),
     baseUrl,
     release: 1.2,
     onload: () => settle(true),
-  }).toDestination()
+  }).connect(limiter)
   // 采样加载超时从 createInstrument() 调用时（模块加载）开始计时，而不是用户首次交互时。
   // 若用户在首次交互前等待数秒，宽限期就相应缩短，连接良好但加载尚未完成时可能触发静音模式。
   // 这是已知的、可接受的折衷——性能 vs. 用户延迟操作的罕见场景。
@@ -75,6 +79,9 @@ export function createInstrument(baseUrl: string): Instrument {
     setVolume: (db) => {
       sampler.volume.value = db
     },
-    dispose: () => sampler.dispose(),
+    dispose: () => {
+      sampler.dispose()
+      limiter.dispose()
+    },
   }
 }

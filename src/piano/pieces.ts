@@ -169,6 +169,19 @@ function distantHills(): Piece {
     }),
   )
 
+  // 中声部：极轻的分解和弦。这一首本来只有 90 个音，水面上大半时间是空的——
+  // 加一层弱奏内声部，让余韵接得上，同时不破坏"最疏"的听感（力度只有旋律的四成）。
+  for (let bar = 2; bar < DH_BARS - 2; bar++) {
+    notes.push(
+      ...arp([...DH_PROG[bar % 4], DH_PROG[(bar + 1) % 4][0]], {
+        start: bar * DH_BAR + DH_BAR / 4,
+        step: DH_BAR / 6,
+        dur: DH_BAR / 2,
+        v: 0.2,
+      }),
+    )
+  }
+
   // 右手：长音旋律，每句跨 2 小节，之后留白只剩铺底，织体最疏
   const phraseA = 'f#4 - - a4 - b4 - -'
   const phraseB = 'e4 - - f#4 - a4 - -'
