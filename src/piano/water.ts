@@ -100,6 +100,77 @@ function getGL2(canvas: HTMLCanvasElement): WebGL2RenderingContext | null {
   }
 }
 
+/**
+ * 编译 + 链接 VERT/FRAG 程序。任何一步失败都先清理已创建的 shader/program 再抛错，
+ * 不把 GL 句柄泄漏给调用方（调用方只关心成功与否，失败就直接走降级）。
+ */
+function buildProgram(gl: WebGL2RenderingContext): WebGLProgram {
+  const prog = gl.createProgram()!
+  const shaders: WebGLShader[] = []
+  try {
+    for (const [type, src] of [
+      [gl.VERTEX_SHADER, VERT],
+      [gl.FRAGMENT_SHADER, FRAG],
+    ] as const) {
+      const sh = gl.createShader(type)!
+      gl.shaderSource(sh, src)
+      gl.compileShader(sh)
+      if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) {
+        const log = gl.getShaderInfoLog(sh)
+        gl.deleteShader(sh)
+        throw new Error(`shader 编译失败：${log}`)
+      }
+      shaders.push(sh)
+      gl.attachShader(prog, sh)
+    }
+    gl.linkProgram(prog)
+    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
+      throw new Error(`program 链接失败：${gl.getProgramInfoLog(prog)}`)
+    }
+    return prog
+  } catch (err) {
+    for (const sh of shaders) gl.deleteShader(sh)
+    gl.deleteProgram(prog)
+    throw err
+  }
+}
+
+/**
+ * 关键前提：一块 <canvas> 一旦被绑定过 webgl2 上下文，之后对它调用 getContext('2d')
+ * 不会抛错，只会静默返回 null——2D 降级路径的 ctx.fillStyle 会在第一帧直接摔死
+ * TypeError，而这恰恰是「WebGL2 上下文能拿到、但 shader 编译/链接在这块驱动上失败」
+ * 这批设备本该被兜底的场景。
+ *
+ * 所以真正的 <canvas> 绝不能先尝试 webgl2 再回退到 2d。做法：先在一块从未展示给
+ * 用户的 detached canvas 上，用完全相同的 shader 源码和 context attributes 探测一遍
+ * 编译/链接是否会成功。探测失败——真实 canvas 还没被碰过，可以安全交给 2D 路径；
+ * 探测成功——才第一次去拿真实 canvas 的 webgl2 上下文，此时不应该再失败。
+ *
+ * 谁想「简化」掉这个探测、直接在真实 canvas 上 try/catch，都会在探测失败但真实
+ * canvas 已经绑定 webgl2 之后，复现这个 bug——不要合并这一步。
+ */
+function shaderCompiles(): boolean {
+  const probeCanvas = document.createElement('canvas')
+  const probeGl = getGL2(probeCanvas)
+  if (!probeGl) return false
+  try {
+    const prog = buildProgram(probeGl)
+    probeGl.deleteProgram(prog)
+    return true
+  } catch {
+    return false
+  } finally {
+    // 探测上下文用完即弃，主动释放底层 GPU 资源，别占着一份再也不会用到的上下文
+    probeGl.getExtension('WEBGL_lose_context')?.loseContext()
+  }
+}
+
+/** 探测通过后真实构造仍失败（几乎不可能，但真实 canvas 此时已绑定 webgl2、2D 已回不去了）
+ *  时的最后防线：不渲染，但也不崩溃。 */
+function inertWater(splash: Water['splash'], setDim: (d: number) => void): Water {
+  return { splash, setDim, resize: () => {}, start: () => {}, stop: () => {} }
+}
+
 export function createWater(
   canvas: HTMLCanvasElement,
   opts: { cap: number; reduced: boolean },
@@ -132,17 +203,21 @@ export function createWater(
     ripples.add(r)
   }
 
-  const gl = opts.reduced ? null : getGL2(canvas)
+  // 先在探测用的 detached canvas 上确认 shader 编译/链接会成功，真实 canvas 才第一次
+  // 去拿 webgl2 上下文——绝不能反过来先绑定真实 canvas 再回退，见 shaderCompiles() 的注释。
+  const gl = !opts.reduced && shaderCompiles() ? getGL2(canvas) : null
 
   if (gl) {
     try {
       return createWaterGL(gl, canvas, ripples, packed, splash, getDim, setDim, t0)
     } catch (err) {
-      // 驱动 / ANGLE 变体可能让一个存在的 WebGL2 上下文仍然编译或链接失败，
-      // 这不该让整个水面崩掉——退到 Canvas 2D 就是留这条后路的意义。
-      console.warn(
-        `[water] WebGL2 着色器初始化失败，降级到 Canvas 2D：${err instanceof Error ? err.message : String(err)}`,
+      // 探测已经在 detached canvas 上验证过同样的 shader 会编译/链接成功，理论上走不到这里；
+      // 万一某个诡异驱动仍在这一步翻车，真实 canvas 已经绑定了 webgl2，getContext('2d') 只会
+      // 拿到 null、没法再退到 2D 了——只能记录下来，返回一个不渲染但也不崩溃的空实现。
+      console.error(
+        `[water] WebGL2 探测通过后仍初始化失败，且真实 canvas 已绑定 webgl2 无法降级：${err instanceof Error ? err.message : String(err)}`,
       )
+      return inertWater(splash, setDim)
     }
   }
 
@@ -161,23 +236,7 @@ function createWaterGL(
 ): Water {
   let raf = 0
 
-  const prog = gl.createProgram()!
-  for (const [type, src] of [
-    [gl.VERTEX_SHADER, VERT],
-    [gl.FRAGMENT_SHADER, FRAG],
-  ] as const) {
-    const sh = gl.createShader(type)!
-    gl.shaderSource(sh, src)
-    gl.compileShader(sh)
-    if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) {
-      throw new Error(`shader 编译失败：${gl.getShaderInfoLog(sh)}`)
-    }
-    gl.attachShader(prog, sh)
-  }
-  gl.linkProgram(prog)
-  if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
-    throw new Error(`program 链接失败：${gl.getProgramInfoLog(prog)}`)
-  }
+  const prog = buildProgram(gl)
   gl.useProgram(prog)
 
   const quad = gl.createBuffer()
