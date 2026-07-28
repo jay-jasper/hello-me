@@ -49,13 +49,16 @@ export function createPlayer(instrument: Instrument, ev: PlayerEvents): Player {
       return playing
     },
     progress() {
-      if (!current) return 0
+      if (!current || current.duration === 0) return 0
       return Math.min(1, Tone.getTransport().seconds / current.duration)
     },
     async play(piece) {
       clear()
       current = piece
       await instrument.ready
+
+      // 若此调用被后来的 play() 覆盖，则不执行调度。防止并发重入导致过期的 onEnd 触发。
+      if (current !== piece) return
 
       // Tone.Part<ValueType> 的回调类型由 ValueType 反推：传元组数组时
       // 泛型要标注成元组本身 [number, T]，而不是裸的 T，否则 CallbackType<T>
@@ -84,6 +87,7 @@ export function createPlayer(instrument: Instrument, ev: PlayerEvents): Player {
       playing = false
     },
     resume() {
+      if (!current) return
       Tone.getTransport().start()
       playing = true
     },
