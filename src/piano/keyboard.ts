@@ -52,8 +52,21 @@ export function createKeyboard(root: HTMLElement, opts: Opts): Keyboard {
   }
 
   const onKeyDown = (e: KeyboardEvent) => {
+    // 检查是否在可编辑元素中，是则不处理琴键
+    const target = e.target as HTMLElement | null
+    if (
+      target instanceof HTMLInputElement ||
+      target instanceof HTMLTextAreaElement ||
+      target instanceof HTMLSelectElement ||
+      target?.isContentEditable
+    ) {
+      return
+    }
+
     const el = document.activeElement as HTMLElement | null
     if (el?.classList.contains('key') && (e.key === 'Enter' || e.key === ' ')) {
+      // Enter/Space 也要检查修饰键，保持与 KEY_MAP 分支一致
+      if (e.metaKey || e.ctrlKey || e.altKey) return
       e.preventDefault()
       press(Number(el.dataset.midi), 0.7)
       return
@@ -72,9 +85,15 @@ export function createKeyboard(root: HTMLElement, opts: Opts): Keyboard {
     if (off !== undefined) opts.onKeyUp?.((baseOctave + 1) * 12 + off)
   }
 
+  // 窗口失焦时清空按住的键，防止键卡住
+  const onBlur = () => {
+    held.clear()
+  }
+
   root.addEventListener('pointerdown', onPointerDown)
   window.addEventListener('keydown', onKeyDown)
   window.addEventListener('keyup', onKeyUpEvt)
+  window.addEventListener('blur', onBlur)
 
   return {
     flash(midi, self) {
@@ -92,6 +111,7 @@ export function createKeyboard(root: HTMLElement, opts: Opts): Keyboard {
       root.removeEventListener('pointerdown', onPointerDown)
       window.removeEventListener('keydown', onKeyDown)
       window.removeEventListener('keyup', onKeyUpEvt)
+      window.removeEventListener('blur', onBlur)
       root.innerHTML = ''
     },
   }
