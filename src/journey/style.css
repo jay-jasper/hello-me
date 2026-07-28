@@ -436,6 +436,9 @@ body {
 .theme-link:hover {
   color: oklch(0.96 0.012 90 / 0.95);
 }
+.theme-link-2 {
+  top: 2.6rem;
+}
 
 .skip-link {
   position: fixed;
