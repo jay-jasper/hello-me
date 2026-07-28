@@ -4,6 +4,8 @@
 // story 支持多段：数组每项一段。
 
 export type Memory = {
+  /** 全站唯一，格式 <年份>-<短名>，如 2006-first-pc。钢琴主题的锚点靠它引用。 */
+  id?: string
   year: number
   kind: 'milestone' | 'moment'
   title: string
@@ -12,6 +14,7 @@ export type Memory = {
 
 export const memories: Memory[] = [
   {
+    id: '2026-abyss-built',
     year: 2026,
     kind: 'milestone',
     title: '深渊落成',
@@ -21,6 +24,7 @@ export const memories: Memory[] = [
     ],
   },
   {
+    id: '2023-far-trip',
     year: 2023,
     kind: 'moment',
     title: '一次很远的旅行',
@@ -30,6 +34,7 @@ export const memories: Memory[] = [
     ],
   },
   {
+    id: '2021-first-loved-job',
     year: 2021,
     kind: 'milestone',
     title: '第一份热爱的工作',
@@ -39,6 +44,7 @@ export const memories: Memory[] = [
     ],
   },
   {
+    id: '2018-graduation-rain',
     year: 2018,
     kind: 'moment',
     title: '毕业那天的雨',
@@ -48,6 +54,7 @@ export const memories: Memory[] = [
     ],
   },
   {
+    id: '2016-first-code',
     year: 2016,
     kind: 'milestone',
     title: '学会写代码的那个夏天',
@@ -57,6 +64,7 @@ export const memories: Memory[] = [
     ],
   },
   {
+    id: '2012-basketball',
     year: 2012,
     kind: 'moment',
     title: '篮球场与少年',
@@ -66,6 +74,7 @@ export const memories: Memory[] = [
     ],
   },
   {
+    id: '2006-first-pc',
     year: 2006,
     kind: 'moment',
     title: '家里的第一台电脑',
@@ -75,6 +84,7 @@ export const memories: Memory[] = [
     ],
   },
   {
+    id: '2000-earliest',
     year: 2000,
     kind: 'moment',
     title: '最早的记忆',

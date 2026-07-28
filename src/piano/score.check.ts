@@ -37,4 +37,68 @@ assert.ok(p.every((n) => n.t === 2 && n.d === 1.5))
 // endOf 取最晚的结束时刻
 assert.equal(endOf([...m, ...p]), 3.5)
 
+import { PIECES, pieceForYear } from './pieces.ts'
+import { memories } from '../content/memories.ts'
+import { site } from '../config.ts'
+
+// 三首曲子
+assert.equal(PIECES.length, 3)
+assert.deepEqual(
+  PIECES.map((p) => p.id),
+  ['morning-window', 'rainfall', 'distant-hills'],
+)
+
+const ids = new Set(memories.map((m) => m.id).filter(Boolean))
+
+for (const p of PIECES) {
+  assert.ok(p.notes.length > 0, `${p.id} 没有音符`)
+  // 注：8 条示例记忆按 birthYear=1994 分段只得 3/3/2，故最少锚点数放宽到 2
+  assert.ok(p.anchors.length >= 2, `${p.id} 至少要 2 个锚点`)
+  assert.ok(p.duration > 60, `${p.id} 太短`)
+
+  // 音高在钢琴范围内、时值非负、力度合法
+  for (const n of p.notes) {
+    assert.ok(n.midi >= 21 && n.midi <= 108, `${p.id} 音高越界：${n.midi}`)
+    assert.ok(n.d > 0, `${p.id} 时值非正`)
+    assert.ok(n.v > 0 && n.v <= 1, `${p.id} 力度越界：${n.v}`)
+    assert.ok(n.t + n.d <= p.duration + 0.01, `${p.id} 有音符超出曲长`)
+  }
+
+  // duration 与末音符一致
+  assert.ok(
+    Math.abs(endOf(p.notes) - p.duration) < 0.01,
+    `${p.id} 的 duration 与末音符结束时刻不一致`,
+  )
+
+  // 锚点：落在曲长内、引用存在、归属正确
+  for (const a of p.anchors) {
+    assert.ok(a.t >= 0 && a.t < p.duration, `${p.id} 锚点 ${a.t}s 超出曲长`)
+    assert.ok(ids.has(a.memory), `${p.id} 引用了不存在的记忆 id：${a.memory}`)
+    const mem = memories.find((m) => m.id === a.memory)!
+    assert.equal(
+      pieceForYear(mem.year, site.birthYear),
+      p.id,
+      `${a.memory}（${mem.year} 年）不该归到 ${p.id}`,
+    )
+  }
+
+  // 同一记忆不重复出现
+  const seen = new Set(p.anchors.map((a) => a.memory))
+  assert.equal(seen.size, p.anchors.length, `${p.id} 有重复锚点`)
+}
+
+// 每条有 id 的记忆必须被恰好一个锚点引用（不漏、不重）
+for (const m of memories) {
+  if (!m.id) continue
+  const refs = PIECES.flatMap((p) => p.anchors.filter((a) => a.memory === m.id))
+  assert.equal(refs.length, 1, `记忆 ${m.id}（${m.year} 年）被引用了 ${refs.length} 次，应该恰好 1 次`)
+}
+
+// 年份分段规则
+assert.equal(pieceForYear(2000, 1994), 'morning-window')
+assert.equal(pieceForYear(2012, 1994), 'morning-window') // 1994+18 = 2012，含边界
+assert.equal(pieceForYear(2013, 1994), 'rainfall')
+assert.equal(pieceForYear(2022, 1994), 'rainfall') // 1994+28 = 2022，含边界
+assert.equal(pieceForYear(2023, 1994), 'distant-hills')
+
 console.log('score.check.ts OK')
