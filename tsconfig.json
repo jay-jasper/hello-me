@@ -12,5 +12,5 @@
     "types": ["vite/client"]
   },
   "include": ["src"],
-  "exclude": ["src/journey/acts.check.ts"]
+  "exclude": ["src/journey/acts.check.ts", "src/piano/instrument.check.ts"]
 }
