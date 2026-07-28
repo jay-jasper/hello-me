@@ -1,5 +1,5 @@
 // 水面。对外只有 splash(x01, vel, pitch01, self)，不认识 midi、不认识音乐。
-import { createRipples, type Ripple } from './ripples.ts'
+import { createRipples, decayRateFor, MAX_DECAY, MIN_DECAY, type Ripple } from './ripples.ts'
 
 export type Water = {
   splash(x01: number, vel: number, pitch01: number, self: boolean): void
@@ -8,6 +8,10 @@ export type Water = {
   start(): void
   stop(): void
 }
+
+// 涟漪缓冲的容量上限，唯一定义在这——GLSL 的 uniform 数组大小、WebGL 与 Canvas 2D
+// 两条路径各自的 Float32Array 都从这一个常量派生，不再各处抄一份 48。
+const MAX_RIPPLES = 48
 
 const VERT = `#version 300 es
 in vec2 aPos;
@@ -22,7 +26,7 @@ precision highp float;
 in vec2 vUv;
 out vec4 outColor;
 
-uniform vec4 uRipple[48];   // x, t0, amp, ±pitch
+uniform vec4 uRipple[${MAX_RIPPLES}];   // x, t0, amp, ±pitch
 uniform int  uCount;
 uniform float uTime;
 uniform float uAspect;
@@ -34,7 +38,7 @@ void main() {
   float glowSelf = 0.0;
   float pitchMix = 0.0;
 
-  for (int i = 0; i < 48; i++) {
+  for (int i = 0; i < ${MAX_RIPPLES}; i++) {
     if (i >= uCount) break;
     vec4 r = uRipple[i];
     float age = uTime - r.y;
@@ -48,9 +52,11 @@ void main() {
     float d = distance(p, src);
 
     // 低音：长波长、慢衰减；高音：短波长、快衰减
+    // 衰减率的两个端点（MIN_DECAY/MAX_DECAY）与 ripples.ts 共用同一份数字，
+    // 避免 shader 和 pack() 的存活时长判断各写各的、悄悄漂移。
     float k = mix(26.0, 88.0, pitch);
     float c = mix(0.22, 0.40, pitch);
-    float decay = mix(0.45, 1.7, pitch);
+    float decay = mix(${MIN_DECAY.toFixed(3)}, ${MAX_DECAY.toFixed(3)}, pitch);
 
     float env = exp(-decay * age) / (1.0 + d * 6.0);
     float wave = sin(k * (d - c * age)) * env * r.z;
@@ -85,17 +91,35 @@ void main() {
   outColor = vec4(col, 1.0);
 }`
 
+/** 尝试拿 WebGL2 上下文；拿不到（或拿的过程本身抛错）就返回 null，交给调用方走 2D 降级。 */
+function getGL2(canvas: HTMLCanvasElement): WebGL2RenderingContext | null {
+  try {
+    return canvas.getContext('webgl2', { antialias: false, alpha: false })
+  } catch {
+    return null
+  }
+}
+
 export function createWater(
   canvas: HTMLCanvasElement,
   opts: { cap: number; reduced: boolean },
 ): Water {
   const ripples = createRipples(opts.cap)
-  const packed = new Float32Array(48 * 4)
-  let dim = 1
-  let raf = 0
-  let t0 = performance.now()
+  const packed = new Float32Array(MAX_RIPPLES * 4)
 
-  const gl = opts.reduced ? null : canvas.getContext('webgl2', { antialias: false, alpha: false })
+  // dim 是两条渲染路径共享的唯一状态：无论最终跑 WebGL 还是 Canvas 2D，
+  // 返回的 Water.setDim 都改写这同一个变量，两条路径的 frame() 都读它。
+  // 这样浮字在场时的 35% 调暗（dim=0.65）对 reduced-motion / 无 WebGL2 用户同样生效。
+  let dim = 1
+  const getDim = () => dim
+  const setDim = (d: number) => {
+    dim = d
+  }
+
+  // t0 只在构造时定一次，之后永不重置：stop()/start() 只是暂停/恢复 rAF 循环，
+  // 缓冲区里已有涟漪的 t0 全部相对同一个原点，不会因为重启而变成负的 age
+  // （负 age 会被 pack() 的 age < 0 分支吞掉，涟漪就会消失又在原地重新冒出来）。
+  const t0 = performance.now()
 
   const splash: Water['splash'] = (x01, vel, pitch01, self) => {
     const r: Ripple = {
@@ -108,7 +132,34 @@ export function createWater(
     ripples.add(r)
   }
 
-  if (!gl) return createWater2D(canvas, ripples, opts, () => dim, splash, () => t0)
+  const gl = opts.reduced ? null : getGL2(canvas)
+
+  if (gl) {
+    try {
+      return createWaterGL(gl, canvas, ripples, packed, splash, getDim, setDim, t0)
+    } catch (err) {
+      // 驱动 / ANGLE 变体可能让一个存在的 WebGL2 上下文仍然编译或链接失败，
+      // 这不该让整个水面崩掉——退到 Canvas 2D 就是留这条后路的意义。
+      console.warn(
+        `[water] WebGL2 着色器初始化失败，降级到 Canvas 2D：${err instanceof Error ? err.message : String(err)}`,
+      )
+    }
+  }
+
+  return createWater2D(canvas, ripples, packed, opts, getDim, setDim, splash, t0)
+}
+
+function createWaterGL(
+  gl: WebGL2RenderingContext,
+  canvas: HTMLCanvasElement,
+  ripples: ReturnType<typeof createRipples>,
+  packed: Float32Array,
+  splash: Water['splash'],
+  getDim: () => number,
+  setDim: (d: number) => void,
+  t0: number,
+): Water {
+  let raf = 0
 
   const prog = gl.createProgram()!
   for (const [type, src] of [
@@ -124,6 +175,9 @@ export function createWater(
     gl.attachShader(prog, sh)
   }
   gl.linkProgram(prog)
+  if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
+    throw new Error(`program 链接失败：${gl.getProgramInfoLog(prog)}`)
+  }
   gl.useProgram(prog)
 
   const quad = gl.createBuffer()
@@ -154,7 +208,7 @@ export function createWater(
     gl.uniform1i(uCount, n)
     gl.uniform1f(uTime, now)
     gl.uniform1f(uAspect, canvas.clientWidth / Math.max(1, canvas.clientHeight))
-    gl.uniform1f(uDim, dim)
+    gl.uniform1f(uDim, getDim())
     gl.drawArrays(gl.TRIANGLES, 0, 3)
     raf = requestAnimationFrame(frame)
   }
@@ -164,15 +218,10 @@ export function createWater(
 
   return {
     splash,
-    setDim: (d) => {
-      dim = d
-    },
+    setDim,
     resize,
     start: () => {
-      if (!raf) {
-        t0 = performance.now()
-        raf = requestAnimationFrame(frame)
-      }
+      if (!raf) raf = requestAnimationFrame(frame)
     },
     stop: () => {
       cancelAnimationFrame(raf)
@@ -185,24 +234,26 @@ export function createWater(
 function createWater2D(
   canvas: HTMLCanvasElement,
   ripples: ReturnType<typeof createRipples>,
+  packed: Float32Array,
   opts: { cap: number; reduced: boolean },
   getDim: () => number,
+  setDim: (d: number) => void,
   splash: Water['splash'],
-  getT0: () => number,
+  t0: number,
 ): Water {
   const ctx = canvas.getContext('2d')!
-  const packed = new Float32Array(48 * 4)
   let raf = 0
 
   const resize = () => {
     const dpr = Math.min(2, window.devicePixelRatio || 1)
-    canvas.width = Math.round(canvas.clientWidth * dpr)
-    canvas.height = Math.round(canvas.clientHeight * dpr)
+    const scale = window.innerWidth < 780 ? 0.5 : 1 // 移动端半分辨率，与 WebGL 路径一致
+    canvas.width = Math.round(canvas.clientWidth * dpr * scale)
+    canvas.height = Math.round(canvas.clientHeight * dpr * scale)
   }
 
   const frame = () => {
     const { width: W, height: H } = canvas
-    const now = (performance.now() - getT0()) / 1000
+    const now = (performance.now() - t0) / 1000
     const n = ripples.pack(now, packed)
 
     ctx.fillStyle = '#050a10'
@@ -215,7 +266,9 @@ function createWater2D(
       const amp = packed[i * 4 + 2]
       const pitch = Math.abs(packed[i * 4 + 3])
       const self = packed[i * 4 + 3] < 0
-      const decay = 0.45 + pitch * 1.25
+      // 与 shader 里的 mix(MIN_DECAY, MAX_DECAY, pitch) 共用 ripples.ts 里同一份映射，
+      // 两条路径的衰减曲线不会因为各写各的常量而分叉。
+      const decay = decayRateFor(pitch)
       const a = Math.max(0, amp * Math.exp(-decay * age)) * getDim()
       if (a <= 0.01) continue
 
@@ -238,7 +291,7 @@ function createWater2D(
 
   return {
     splash,
-    setDim: () => {},
+    setDim,
     resize,
     start: () => {
       if (!raf) raf = requestAnimationFrame(frame)
