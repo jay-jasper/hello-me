@@ -44,6 +44,17 @@ const keyboard = createKeyboard($('keys'), {
   },
 })
 
+/* ---------- 移动端：键盘条初始定位到中央 C ---------- */
+// .piano 是横向滚动容器（overflow-x: auto），.keys 是被拉宽到 340% 的内容。
+// 不定位的话第一屏只能看到最低音的几个白键，够不到能弹旋律的中段。
+if (mobile) {
+  const pianoEl = document.querySelector<HTMLElement>('.piano')
+  const keysEl = $<HTMLDivElement>('keys')
+  if (pianoEl) {
+    pianoEl.scrollLeft = Math.max(0, centerX(60) * keysEl.scrollWidth - pianoEl.clientWidth / 2)
+  }
+}
+
 const player = createPlayer(instrument, {
   onNote: (midi, vel) => strikeVisual(midi, vel, false),
   onAnchor: (memory) => reveal.show(memory),
@@ -94,10 +105,10 @@ async function start() {
   $('status-note').removeAttribute('hidden')
   try {
     await Tone.start()
-    await Promise.race([
-      instrument.ready,
-      new Promise((_, reject) => setTimeout(() => reject(new Error('采样加载超时')), 8000)),
-    ])
+    // instrument.ready 自己保证在 READY_TIMEOUT_MS 内落定（成功 true / 超时 false），
+    // 这里不用再拿 Promise.race 包一层超时——单一超时来源，避免两处各写一份 8 秒。
+    const loaded = await instrument.ready
+    if (!loaded) throw new Error('采样加载超时')
   } catch (err) {
     console.warn('[piano] 进入静音模式：', err)
     $('fallback-note').removeAttribute('hidden')
@@ -123,10 +134,11 @@ window.addEventListener('keydown', (e) => {
     player.playing ? player.pause() : player.resume()
   } else if (e.key.toLowerCase() === 'n') {
     nextPiece()
-  } else if (e.key === 'ArrowLeft') {
-    keyboard.setOctave(-1)
-  } else if (e.key === 'ArrowRight') {
-    keyboard.setOctave(1)
+  } else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+    // 焦点在键组内时，方向键归 keyboard.ts 管——用来在键之间移动焦点；
+    // 只有焦点在键组外，方向键才用来移八度，两者不能同时抢同一个按键。
+    if (document.activeElement?.closest('.keys')) return
+    keyboard.setOctave(e.key === 'ArrowLeft' ? -1 : 1)
   }
 })
 

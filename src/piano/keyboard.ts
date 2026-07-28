@@ -23,6 +23,9 @@ export function createKeyboard(root: HTMLElement, opts: Opts): Keyboard {
   root.innerHTML = ''
   root.setAttribute('role', 'group')
   root.setAttribute('aria-label', '钢琴键盘，88 键')
+  // 键组只占一个 Tab 停靠点：容器本身可 Tab 到，88 个键都退出 Tab 序列，
+  // 组内导航改由方向键接管（见下面的 moveFocus）。
+  root.tabIndex = 0
 
   const make = (k: KeyGeom) => {
     const el = document.createElement('button')
@@ -31,6 +34,7 @@ export function createKeyboard(root: HTMLElement, opts: Opts): Keyboard {
     el.style.width = `${k.w * 100}%`
     el.dataset.midi = String(k.midi)
     el.type = 'button'
+    el.tabIndex = -1
     el.setAttribute('aria-label', labelOf(k.midi))
     els.set(k.midi, el)
     root.appendChild(el)
@@ -40,6 +44,18 @@ export function createKeyboard(root: HTMLElement, opts: Opts): Keyboard {
   LAYOUT.filter((k) => k.black).forEach(make)
 
   const press = (midi: number, vel: number) => opts.onNote(midi, vel)
+
+  // LAYOUT 按 midi 从低到高排列，正好等于键盘从左到右的物理顺序，
+  // 所以「下一个/上一个键」直接就是数组里的相邻项。
+  const moveFocus = (dir: number) => {
+    const active = document.activeElement as HTMLElement | null
+    const activeMidi = active?.dataset.midi ? Number(active.dataset.midi) : NaN
+    const idx = Number.isNaN(activeMidi) ? -1 : LAYOUT.findIndex((k) => k.midi === activeMidi)
+    // 容器刚获焦、还没落到具体键：从中央 C 开始，让手机/键盘用户第一步就落在琴键中段
+    const nextIdx = idx === -1 ? LAYOUT.findIndex((k) => k.midi === 60) : Math.min(LAYOUT.length - 1, Math.max(0, idx + dir))
+    const next = LAYOUT[nextIdx]
+    if (next) els.get(next.midi)?.focus()
+  }
 
   const onPointerDown = (e: PointerEvent) => {
     const el = (e.target as HTMLElement).closest('.key') as HTMLButtonElement | null
@@ -71,6 +87,17 @@ export function createKeyboard(root: HTMLElement, opts: Opts): Keyboard {
       press(Number(el.dataset.midi), 0.7)
       return
     }
+
+    // 焦点在键组内（容器本身或某个键）时，左右方向键用来在键之间移动焦点，
+    // 而不是像 main.ts 里那样移八度——两者互斥，靠「焦点是否在 .keys 内」区分。
+    // main.ts 的全局监听会先检查 closest('.keys')，焦点在这里时它会让出。
+    if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && (el === root || root.contains(el))) {
+      if (e.metaKey || e.ctrlKey || e.altKey) return
+      e.preventDefault()
+      moveFocus(e.key === 'ArrowLeft' ? -1 : 1)
+      return
+    }
+
     if (e.metaKey || e.ctrlKey || e.altKey || e.repeat) return
     const off = KEY_MAP[e.key.toLowerCase()]
     if (off === undefined) return

@@ -263,6 +263,12 @@ a {
   overflow: hidden;
 }
 
+/* 容器本身是唯一的 Tab 停靠点：Tab 刚落上、还没移到具体键时也要看得见焦点在哪 */
+.keys:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: -2px;
+}
+
 .key {
   position: absolute;
   top: 0;
