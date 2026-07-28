@@ -13,5 +13,5 @@
     "types": ["vite/client"]
   },
   "include": ["src"],
-  "exclude": ["src/journey/acts.check.ts", "src/piano/instrument.check.ts", "src/piano/score.check.ts", "src/piano/keys.check.ts"]
+  "exclude": ["src/journey/acts.check.ts", "src/piano/instrument.check.ts", "src/piano/score.check.ts", "src/piano/keys.check.ts", "src/piano/ripples.check.ts"]
 }
