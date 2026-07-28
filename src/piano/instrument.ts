@@ -29,9 +29,13 @@ export function createInstrument(baseUrl: string): Instrument {
   const ready = new Promise<boolean>((r) => (settleReady = r))
   // resolve 之后再调用 resolve 本来就是 no-op，但用 settled 挡一道更明确：
   // 避免超时定时器和 onload 谁先谁后全靠 Promise 语义兜底、意图看不出来。
+  let timeoutId: ReturnType<typeof window.setTimeout> | undefined
   const settle = (ok: boolean) => {
     if (settled) return
     settled = true
+    if (timeoutId !== undefined) {
+      window.clearTimeout(timeoutId)
+    }
     settleReady(ok)
   }
 
@@ -41,7 +45,10 @@ export function createInstrument(baseUrl: string): Instrument {
     release: 1.2,
     onload: () => settle(true),
   }).toDestination()
-  window.setTimeout(() => settle(false), READY_TIMEOUT_MS)
+  // 采样加载超时从 createInstrument() 调用时（模块加载）开始计时，而不是用户首次交互时。
+  // 若用户在首次交互前等待数秒，宽限期就相应缩短，连接良好但加载尚未完成时可能触发静音模式。
+  // 这是已知的、可接受的折衷——性能 vs. 用户延迟操作的罕见场景。
+  timeoutId = window.setTimeout(() => settle(false), READY_TIMEOUT_MS)
 
   // 静音模式（采样没加载完/加载失败）下，Sampler 对还没有 buffer 的音符会抛错。
   // player.ts 的 Tone.Part 回调里直接调这几个方法，一旦抛出就会打断那次调度，

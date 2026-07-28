@@ -61,6 +61,7 @@ export function createKeyboard(root: HTMLElement, opts: Opts): Keyboard {
     const el = (e.target as HTMLElement).closest('.key') as HTMLButtonElement | null
     if (!el) return
     e.preventDefault()
+    el.focus()
     const rect = el.getBoundingClientRect()
     // 越靠键的下沿力度越大，模拟按得深
     const vel = 0.45 + 0.45 * Math.min(1, Math.max(0, (e.clientY - rect.top) / rect.height))
@@ -91,7 +92,7 @@ export function createKeyboard(root: HTMLElement, opts: Opts): Keyboard {
     // 焦点在键组内（容器本身或某个键）时，左右方向键用来在键之间移动焦点，
     // 而不是像 main.ts 里那样移八度——两者互斥，靠「焦点是否在 .keys 内」区分。
     // main.ts 的全局监听会先检查 closest('.keys')，焦点在这里时它会让出。
-    if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && (el === root || root.contains(el))) {
+    if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && root.contains(el)) {
       if (e.metaKey || e.ctrlKey || e.altKey) return
       e.preventDefault()
       moveFocus(e.key === 'ArrowLeft' ? -1 : 1)
