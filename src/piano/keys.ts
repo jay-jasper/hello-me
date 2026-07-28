@@ -7,7 +7,8 @@ const HIGH = 108 // C8
 const BLACK_PC = new Set([1, 3, 6, 8, 10])
 const WHITE_COUNT = 52
 const WHITE_W = 1 / WHITE_COUNT
-const BLACK_W = WHITE_W * 0.62
+// 真琴上黑键宽约为白键的 0.55–0.58，取 0.56；0.62 会显得又胖又挤
+const BLACK_W = WHITE_W * 0.56
 
 function build(): KeyGeom[] {
   const out: KeyGeom[] = []

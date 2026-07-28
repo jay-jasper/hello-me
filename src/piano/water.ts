@@ -36,6 +36,7 @@ void main() {
   vec2 p = vec2(vUv.x * uAspect, vUv.y);
   float h = 0.0;
   float glowSelf = 0.0;
+  float crest = 0.0;
   float pitchMix = 0.0;
 
   for (int i = 0; i < ${MAX_RIPPLES}; i++) {
@@ -58,34 +59,38 @@ void main() {
     float c = mix(0.22, 0.40, pitch);
     float decay = mix(${MIN_DECAY.toFixed(3)}, ${MAX_DECAY.toFixed(3)}, pitch);
 
-    float env = exp(-decay * age) / (1.0 + d * 6.0);
+    // 距离衰减放缓：除以 (1 + 6d) 会让波纹出膛就没了，实测整片水面几乎是黑的
+    float env = exp(-decay * age) / (1.0 + d * 2.0);
     float wave = sin(k * (d - c * age)) * env * r.z;
     // 波前之外不该有振动
     wave *= smoothstep(0.0, 0.06, c * age - d + 0.06);
 
     h += wave;
     pitchMix += pitch * abs(wave);
+    crest += abs(wave);
     if (self) glowSelf += abs(wave);
   }
 
   // 伪法线
-  float dx = dFdx(h) * 40.0;
-  float dy = dFdy(h) * 40.0;
+  float dx = dFdx(h) * 140.0;
+  float dy = dFdy(h) * 140.0;
   vec3 n = normalize(vec3(-dx, -dy, 1.0));
 
-  vec3 deep = vec3(0.020, 0.035, 0.062);
-  vec3 cool = vec3(0.055, 0.16, 0.24);
-  vec3 base = mix(deep, cool, clamp(pitchMix * 2.2, 0.0, 1.0));
+  vec3 deep = vec3(0.016, 0.030, 0.055);
+  vec3 cool = vec3(0.10, 0.30, 0.44);
+  vec3 base = mix(deep, cool, clamp(pitchMix * 3.2, 0.0, 1.0));
 
   vec3 lightDir = normalize(vec3(0.35, 0.65, 0.72));
-  float spec = pow(max(dot(n, lightDir), 0.0), 42.0);
+  float spec = pow(max(dot(n, lightDir), 0.0), 26.0);
   float rim = pow(1.0 - n.z, 2.0);
 
-  vec3 col = base + spec * vec3(0.55, 0.78, 0.92) + rim * vec3(0.05, 0.11, 0.16);
+  vec3 col = base + spec * vec3(0.75, 0.95, 1.0) + rim * vec3(0.10, 0.24, 0.34);
+  // 波峰本身也发光：只靠高光的话，波纹在暗场里读不出来
+  col += clamp(crest, 0.0, 1.4) * vec3(0.10, 0.26, 0.36);
   col += glowSelf * vec3(0.62, 0.46, 0.16);   // 用户弹的音，金边
 
-  // 越靠下（贴近琴键）越暗，让键盘从水里长出来
-  col *= mix(0.55, 1.0, smoothstep(0.0, 0.5, vUv.y));
+  // 顶部（远处）压暗收边，靠近琴键的一侧保持亮，因为涟漪就是从那儿生出来的
+  col *= mix(1.0, 0.45, smoothstep(0.45, 1.0, vUv.y));
   col *= uDim;
 
   outColor = vec4(col, 1.0);

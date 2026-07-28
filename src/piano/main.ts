@@ -81,16 +81,17 @@ function tickProgress() {
   requestAnimationFrame(tickProgress)
 }
 
-/* ---------- 开场闸门 ---------- */
+/* ---------- 开场：无遮罩，首次交互即解锁音频 ---------- */
+// 浏览器不允许无手势出声，所以第一次点击/按键才唤醒 AudioContext 并下载采样。
+// 采样约 1.9 MB，加载期间给一行状态，免得看上去像点了没反应。
 let started = false
 async function start() {
   if (started) return
   started = true
-  $('gate').classList.add('gone')
-  window.setTimeout(() => $('gate').setAttribute('hidden', ''), 800)
   water.start()
   tickProgress()
 
+  $('status-note').removeAttribute('hidden')
   try {
     await Tone.start()
     await Promise.race([
@@ -101,6 +102,7 @@ async function start() {
     console.warn('[piano] 进入静音模式：', err)
     $('fallback-note').removeAttribute('hidden')
   }
+  $('status-note').setAttribute('hidden', '')
 
   document.querySelector('.now-playing')!.removeAttribute('hidden')
   $('controls').removeAttribute('hidden')
