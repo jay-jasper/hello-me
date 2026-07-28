@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="一台可以弹的钢琴——三首曲子，三段人生。" />
+    <meta name="theme-color" content="#050a10" />
+    <title>琴 · Lee</title>
+  </head>
+  <body>
+    <a class="skip-link" href="#memory-layer">跳到记忆文字</a>
+    <a class="theme-link" href="./index.html">深渊 →</a>
+    <a class="theme-link theme-link-2" href="./profile.html">炽热 →</a>
+
+    <main class="stage">
+      <section class="water-wrap" aria-hidden="true">
+        <canvas id="water"></canvas>
+        <p class="latin-mark" id="latin"></p>
+      </section>
+
+      <div class="memory-layer" id="memory-layer"></div>
+
+      <header class="now-playing" hidden>
+        <p class="np-title" id="np-title"></p>
+        <p class="np-mood" id="np-mood"></p>
+        <div class="np-progress"><i id="np-bar"></i></div>
+      </header>
+
+      <section class="piano" aria-label="钢琴">
+        <div class="keys" id="keys"></div>
+      </section>
+
+      <div class="gate" id="gate">
+        <p class="gate-title">一台可以弹的钢琴</p>
+        <p class="gate-hint">按任意键 · 开始</p>
+      </div>
+
+      <div class="controls" hidden id="controls">
+        <button id="btn-pause" type="button" aria-label="暂停或继续">⏸</button>
+        <button id="btn-next" type="button" aria-label="下一首">⏭</button>
+      </div>
+
+      <p class="credit">
+        Salamander Grand Piano · Alexander Holm ·
+        <a href="https://creativecommons.org/licenses/by/3.0/" target="_blank" rel="noopener">CC-BY 3.0</a>
+      </p>
+      <p class="fallback-note" id="fallback-note" hidden>音频不可用，仍可观看</p>
+    </main>
+
+    <noscript>
+      <p class="noscript">这一页需要 JavaScript 才能发声。三首曲子分别对应童年、青年与此刻，各自绑着几段记忆。</p>
+    </noscript>
+
+    <script type="module" src="/src/piano/main.ts"></script>
+  </body>
+</html>

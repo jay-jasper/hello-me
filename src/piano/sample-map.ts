@@ -11,6 +11,12 @@ export const SAMPLE_NOTES = [
 
 export function sampleMap(): Record<string, string> {
   const out: Record<string, string> = {}
-  for (const n of SAMPLE_NOTES) out[n] = `${n}.mp3`
+  for (const n of SAMPLE_NOTES) {
+    // 文件名沿用上游的 's' 记谱（Ds1.mp3），但 Tone.Sampler 的 urls key 要求标准
+    // 音名写法（isNote() 只认 b/#/x/bb 作升降号，认不出 's'）——key 用 '#'，
+    // value 仍指向磁盘上真实的 .mp3 文件名，两者故意不同。
+    const key = n.replace(/^([A-Ga-g])s(\d+)$/, '$1#$2')
+    out[key] = `${n}.mp3`
+  }
   return out
 }
