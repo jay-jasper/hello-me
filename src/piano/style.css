@@ -97,6 +97,9 @@ a {
 .theme-link-2 {
   top: 2.7rem;
 }
+.theme-link-3 {
+  top: 4.15rem;
+}
 
 .noscript {
   padding: 2rem var(--pad);

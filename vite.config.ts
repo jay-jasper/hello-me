@@ -36,6 +36,7 @@ export default defineConfig({
         journey: resolve(__dirname, 'journey.html'),
         profile: resolve(__dirname, 'profile.html'),
         piano: resolve(__dirname, 'piano.html'),
+        starmap: resolve(__dirname, 'starmap.html'),
       },
     },
   },
