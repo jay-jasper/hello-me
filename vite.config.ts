@@ -37,6 +37,7 @@ export default defineConfig({
         profile: resolve(__dirname, 'profile.html'),
         piano: resolve(__dirname, 'piano.html'),
         starmap: resolve(__dirname, 'starmap.html'),
+        astra: resolve(__dirname, 'astra.html'),
       },
     },
   },

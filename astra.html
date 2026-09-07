@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Lee · Astra 极光星云主题，基于 WebGL 极光流体与星尘粒子的沉浸式个人主页" />
+    <meta name="theme-color" content="#06080e" />
+    <title>Lee · Astra 极光星云</title>
+    <link rel="stylesheet" href="/src/astra/astra.css" />
+  </head>
+  <body>
+    <!-- Background Reusable WebGL Canvas -->
+    <canvas id="astra-canvas" aria-hidden="true"></canvas>
+
+    <!-- Global Nav -->
+    <header class="astra-nav">
+      <a href="#hero" class="astra-logo">ASTRA // OBSERVATORY</a>
+      <ul class="astra-nav-links">
+        <li><a href="#projects">星体工坊</a></li>
+        <li><a href="#logs">跃迁手记</a></li>
+        <li><a href="./index.html">深海首页 →</a></li>
+        <li><a href="./piano.html">琴房 →</a></li>
+        <li><a href="./starmap.html">星图 →</a></li>
+      </ul>
+    </header>
+
+    <!-- Main Content -->
+    <main class="astra-container">
+      <!-- Hero -->
+      <section class="astra-hero" id="hero">
+        <div class="hero-tag" id="hero-tag">FRONTIER INTELLIGENCE & GRAPHICS</div>
+        <h1 class="hero-name" id="hero-name">Lee</h1>
+        <p class="hero-sub" id="hero-sub"></p>
+        <div class="hero-metrics" id="hero-metrics"></div>
+      </section>
+
+      <!-- Projects -->
+      <section class="astra-section" id="projects">
+        <div class="section-header">
+          <div class="section-tag">// 01 · CONSTELLATION WORKS</div>
+          <h2 class="section-title">星体工坊与实验</h2>
+        </div>
+        <div class="projects-grid" id="projects-grid"></div>
+      </section>
+
+      <!-- Logs -->
+      <section class="astra-section" id="logs">
+        <div class="section-header">
+          <div class="section-tag">// 02 · QUANTUM LOGS</div>
+          <h2 class="section-title">跃迁手记与洞见</h2>
+        </div>
+        <div class="logs-list" id="logs-list"></div>
+      </section>
+
+      <!-- Footer -->
+      <footer class="astra-footer">
+        <div class="footer-brand">© 2026 LEE · POWERED BY ASTRA NEBULA ENGINE</div>
+        <ul class="footer-nav" id="footer-links"></ul>
+      </footer>
+    </main>
+
+    <script type="module" src="/src/astra/main.ts"></script>
+  </body>
+</html>
